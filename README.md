@@ -37,7 +37,9 @@ As you'll discover we do not have a proper parser, so we have considered only a 
 
 Supported registers only include `rax`, `rbx`, `rcx`, and `rdx`.  Zero other registers are supported.  No other instructions are supported.
 
-We have zero support for control-flow, nor do we allow labels, or compiler directives.  Printing a simple string is beyond us ..
+We have zero support for control-flow, or compiler directives.
+
+There is support for storing fixed-data within our program, and locating that.  See [hello.asm](hello.asm) for an example of that.
 
 
 ## Example
