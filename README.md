@@ -51,5 +51,34 @@ Compile the [sample program](test.asm), and execute it showing the return-code:
      $ ./assembler  test.in  && ./a.out  ; echo $?
      9
 
+Or run the [hello.asm](hello.asm) example:
+
+     $ ./assembler  hello.in  && ./a.out
+     Hello, world\nGGoodbye, world\n
+
+Meh, close enough..
+
+
+## Debugging
+
+Launch the binary under gdb:
+
+    $ gdb ./a.out
+
+Start it:
+
+    (gdb) starti
+    Starting program: /home/skx/Repos/github.com/skx/assembler/a.out
+
+    Program stopped.
+    0x00000000004000b0 in ?? ()
+
+Dissassemble:
+
+    (gdb)  x/5i $pc
+
+Or show string-contents at an address:
+
+    (gdb) x/s 0x400000
 
 Steve
