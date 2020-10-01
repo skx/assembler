@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"encoding/binary"
 	"fmt"
-	"github.com/skx/assembler/elf"
 	"os"
 	"strconv"
 	"strings"
+
+	"github.com/skx/assembler/elf"
 )
 
 // Assemble reads the given input, line by line, and assemble
@@ -22,6 +23,12 @@ func Assemble(path string) error {
 		return err
 	}
 	defer file.Close()
+
+	//
+	// Mapping of labels to data.
+	//
+	label := make(map[string]int)
+	patches := make(map[int]int)
 
 	//
 	// This is where we assemble our text.
@@ -50,8 +57,39 @@ func Assemble(path string) error {
 			continue
 		}
 
-		// Register set
-		if strings.HasPrefix(line, "mov ") {
+		// Data storage of a string
+		if strings.HasPrefix(line, ".") {
+
+			//
+			// We assume
+			//
+			///  .NAME DB "STRING"
+			//
+			fields := strings.Split(line, " ")
+			if fields[1] != "DB" {
+				return fmt.Errorf("unknown label-type in %s", orig)
+			}
+
+			//
+			// String might have spaces so we go back and strip the
+			// prefix
+			//
+			line = orig
+			line = strings.TrimPrefix(line, fields[0])
+			line = strings.TrimSpace(line)
+			line = strings.TrimPrefix(line, fields[1])
+			line = strings.TrimSpace(line)
+
+			// Add the string
+			line = strings.TrimPrefix(line, "\"")
+			line = strings.TrimSuffix(line, "\"")
+
+			name := fields[0]
+			name = strings.TrimPrefix(name, ".")
+			label[name] = len(data)
+			data = append(data, []byte(line)...)
+
+		} else if strings.HasPrefix(line, "mov ") {
 
 			// assume "mov REG, NUM" for the moment
 			line = strings.TrimPrefix(line, "mov ")
@@ -71,11 +109,20 @@ func Assemble(path string) error {
 				return fmt.Errorf("unknown register %s in %s", fields[0], orig)
 			}
 
-			// NUM
+			// NUM / label
 			fields[1] = strings.TrimSpace(fields[1])
-			num, nerr := strconv.ParseInt(fields[1], 0, 64)
-			if nerr != nil {
-				return fmt.Errorf("unable to convert %s to number for register %s", fields[1], nerr)
+
+			offset, ok := label[fields[1]]
+			var num int64
+			if ok {
+				num = int64(offset)
+
+				patches[len(text)] = offset
+			} else {
+				num, err = strconv.ParseInt(fields[1], 0, 64)
+				if err != nil {
+					return fmt.Errorf("unable to convert %s to number for register %s", fields[1], err)
+				}
 			}
 
 			// Add the value
@@ -130,7 +177,6 @@ func Assemble(path string) error {
 		} else {
 			fmt.Printf("UNKNOWN LINE: %s\n", line)
 		}
-
 	}
 
 	//
@@ -140,6 +186,22 @@ func Assemble(path string) error {
 		return err
 	}
 
+	for o, v := range patches {
+
+        // start of virtual sectoin
+        //  + offset
+        //  + len of code segment
+        //  + elf header
+        //  + 2 * program header
+        // life is hard
+		v = 0x400000 + v + len(text) + 0x40 + (2 * 0x38)
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, uint32(v))
+
+		for i, x := range buf {
+			text[i+o] = x
+		}
+	}
 	//
 	// No error.
 	//
