@@ -150,14 +150,11 @@ For example here is how you'd build and test the parser:
 
 This is how you might add a new instruction to the assembler, for example you might add `jmp 0x00000` or some similar instruction:
 
-* Add a new token-type for the instruction to [token/token.go](token/token.go)
-  * i.e. Update `known` to map to an instruction.
-* Add a new table-entry to [parser/parser.go](parser/parser.go)
-  * i.e. Set the instruction-length in `parseInstruction`
-* Generate the appropriate output in `compiler/compiler.go`
-  * i.e. Emit the opcode
-
-Ideally in the future we wouldn't need to update both the tokenizer __and__ the parser, but this is a work in progress.
+* Add a new entry for the instruction in [instructions/instructions.go](instructions/instructions.go)
+  * i.e. Update `InstructionLengths` map to add the instruction.
+  * This will be used by both the tokenization process, and the parser.
+* Generate the appropriate output in `compiler/compiler.go`, inside the function `compileInstruction`.
+  * i.e. Emit the binary-code for the instruction.
 
 
 

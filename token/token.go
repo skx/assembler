@@ -5,6 +5,8 @@
 // which will then be further-processed.
 package token
 
+import "github.com/skx/assembler/instructions"
+
 // Type is a string
 type Type string
 
@@ -46,16 +48,6 @@ const (
 var known = map[string]Type{
 	"DB": DB,
 
-	// instructions we handle
-	"add":  INSTRUCTION,
-	"inc":  INSTRUCTION,
-	"int":  INSTRUCTION,
-	"mov":  INSTRUCTION,
-	"nop":  INSTRUCTION,
-	"push": INSTRUCTION,
-	"ret":  INSTRUCTION,
-	"xor":  INSTRUCTION,
-
 	// registers
 	// TODO: more
 	"rax": REGISTER,
@@ -66,6 +58,13 @@ var known = map[string]Type{
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not
 func LookupIdentifier(identifier string) Type {
+
+	// Is this an instruction
+	for _, ins := range instructions.Instructions {
+		if identifier == ins {
+			return INSTRUCTION
+		}
+	}
 
 	if tok, ok := known[identifier]; ok {
 		return tok

@@ -5,6 +5,7 @@ package parser
 import (
 	"fmt"
 
+	"github.com/skx/assembler/instructions"
 	"github.com/skx/assembler/lexer"
 	"github.com/skx/assembler/token"
 )
@@ -122,24 +123,11 @@ func (p *Parser) parseData() Node {
 //
 func (p *Parser) parseInstruction() Node {
 
-	// How many arguments does the given instruction take?
-	//
-	// TODO: make this better
-	args := make(map[string]int)
-	args["add"] = 2
-	args["inc"] = 1
-	args["int"] = 1
-	args["mov"] = 2
-	args["nop"] = 0
-	args["push"] = 1
-	args["ret"] = 0
-	args["xor"] = 2
-
 	// Get the current instruction
 	tok := p.program[p.position]
 
 	// Find out how many arguments it has
-	count, ok := args[tok.Literal]
+	count, ok := instructions.InstructionLengths[tok.Literal]
 
 	// If that failed then it is an unknown instruction, probably
 	if !ok {
