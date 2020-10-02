@@ -46,7 +46,7 @@ Note that in **all cases** we only support the following set of (four) registers
 * `rax`
 * `rbx`
 * `rcx`
-* `rdx`.
+* `rdx`
 
 There is support for storing fixed-data within our program, and locating that.  See [hello.asm](hello.asm) for an example of that.
 
@@ -70,12 +70,14 @@ If you have this repository cloned locally you can build the assembler like so:
 
 If you wish to fetch and install via your existing toolchain:
 
-    go get github.com/skx/assembler/cmd/assembler
+    go get -u github.com/skx/assembler/cmd/assembler
 
 You can repeat for the other commands if you wish:
 
-    go install github.com/skx/assembler/cmd/lexer
-    go install github.com/skx/assembler/cmd/parser
+    go get -u github.com/skx/assembler/cmd/lexer
+    go get -u github.com/skx/assembler/cmd/parser
+
+Of course these binary-names are very generic, so perhaps better to work locally!
 
 
 ## Example Usage
@@ -105,6 +107,7 @@ The core of our code consists of three simple packages:
 
 * A simple tokenizer [lexer/lexer.go](lexer/lexer.go)
 * A simple parser [parser/parser.go](parser/parser.go)
+  * This populates a simple internal-form/AST [parser/ast.go](parser/ast.go).
 * A simple compiler [compiler/compiler.go](compiler/complier.go)
 * A simple elf-generator [elf/elf.go](elf/elf.go)
   * Taken from [vishen/go-x64-executable](https://github.com/vishen/go-x64-executable/).
