@@ -72,6 +72,15 @@ func (l *Lexer) NextToken() token.Token {
 			tok = token.Token{Type: token.LABEL, Literal: label}
 		}
 
+	case rune('.'):
+		label, err := l.readLabel()
+		if err != nil {
+			tok.Literal = err.Error()
+			tok.Type = token.ILLEGAL
+		} else {
+			tok = token.Token{Type: token.DATA, Literal: label}
+		}
+
 	case rune(','):
 		tok = token.Token{Type: token.COMMA, Literal: ","}
 	case rune('"'):
@@ -101,12 +110,8 @@ func (l *Lexer) NextToken() token.Token {
 			return tok
 		}
 
-		// TODO - label reference
-
 		// Not an instruction/register (+LABEL)
-		tok.Type = token.ILLEGAL
-		tok.Literal = fmt.Sprintf("invalid character for indentifier '%c'", l.ch)
-		l.readChar()
+		tok.Type = token.IDENTIFIER
 		return tok
 
 	}
@@ -250,7 +255,7 @@ func (l *Lexer) readLabel() (string, error) {
 // but they must start with a letter.  Here that works because we are only
 // called if the first character is alphabetical.
 func isIdentifier(ch rune) bool {
-	if unicode.IsLetter(ch) || unicode.IsDigit(ch) || ch == '$' {
+	if unicode.IsLetter(ch) || unicode.IsDigit(ch) || ch == '$' || ch == '_' || ch == '-' {
 		return true
 	}
 	return false
