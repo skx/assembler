@@ -1,8 +1,11 @@
-// Package instructions contains the comment instructions
-// we understand.
+// Package instructions contains the comment instruction-definitions
+// for the instructions that we understand.
 //
 // These are abstracted here, so that you only don't need to touch
-// the parser/lexer to add new types
+// the parser/lexer to add new instructions.
+//
+// Just add the instructions here, and update the compiler to emit the
+// appropriate code.
 package instructions
 
 var (
