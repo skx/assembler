@@ -24,8 +24,13 @@ const (
 	COMMA       = ","
 	EOF         = "EOF"
 	LABEL       = "LABEL"
+	DATA        = "DATA"
 	REGISTER    = "REGISTER"
 	INSTRUCTION = "INSTRUCTION"
+	IDENTIFIER  = "IDENTIFIER"
+
+	// Data statement
+	DB = "DB"
 
 	// Number as operand
 	NUMBER = "NUMBER"
@@ -39,6 +44,8 @@ const (
 
 // known things we can handle
 var known = map[string]Type{
+	"DB": DB,
+
 	// instructions we handle
 	"mov": INSTRUCTION,
 	"xor": INSTRUCTION,
@@ -59,5 +66,5 @@ func LookupIdentifier(identifier string) Type {
 	if tok, ok := known[identifier]; ok {
 		return tok
 	}
-	return ILLEGAL
+	return IDENTIFIER
 }
