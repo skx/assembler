@@ -36,6 +36,11 @@ We don't support anywhere near the complete instruction-set which an assembly la
   * Move a number into the specified register.
 * `nop`
   * Do nothing.
+* `push $NUMBER`, or `push $IDENTIFIER`
+  * See [jmp.asm](jmp.asm) for an example.
+* `ret`
+  * Return from call.
+  * **NOTE**: We don't actually support making calls, though that can be emulated via `push` - see [jmp.asm](jmp.asm) for an example.
 * `xor $REG, $REG`
   * Set the given register to be zero.
 * `int 0x80`
@@ -52,7 +57,8 @@ There is support for storing fixed-data within our program, and locating that.  
 
 We also have some other (obvious) limitations:
 
-* There is notably no support for comparison instructions, stack instructions and control-flow instructions.
+* There is notably no support for comparison instructions, and jumping instructions.
+  * We _emulate_ (unconditional) jump instructions via "`push`" and "`ret`", see [jmp.asm](jmp.asm) for an example of that.
 * The entry-point is __always__ at the beginning of the source.
 * You can only reference data AFTER it has been declared.
   * These are added to the `data` section of the generated binary, but must be defined first.
