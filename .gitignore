@@ -1,2 +1,5 @@
 a.out
 assembler
+cmd/lexer/lexer
+cmd/parser/parser
+cmd/assembler/assembler

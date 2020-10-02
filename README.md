@@ -1,14 +1,17 @@
 # Assembler
 
-This repository contains a VERY VERY BASIC assembler, which is capable of
+This repository contains a VERY BASIC assembler, which is capable of
 reading simple assembly-language programs, and generating an ELF binary
 from them.
 
-Specifically this will generate a binary which looks like this:
+It is more a proof-of-concept than a useful assembler, but I hope to take it to the state where it can compile the kind of x86-64 assembly I produce in some of my other projects.
+
+Currently the assembler will generate a binary which looks like this:
 
 ```
 $ file a.out
-a.out: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), statically linked, no section header
+a.out: ELF 64-bit LSB executable, x86-64, version 1 (SYSV)
+       statically linked, no section header
 ```
 
 Why?  I've written a couple of toy projects that generate assembly language programs, then pass them through an assembler:
@@ -24,63 +27,105 @@ The code in this repository was born out of the process of experimenting with ge
 
 We don't support anywhere near the complete instruction-set which an assembly language programmer would expect.  Currently we support only things like this:
 
-* `mov $REG, $NUM`
-* `mov $REG, $REG`
-  * Move a number into the specified register.
-* `xor $REG, $REG`
-  * Set the given register to be zero.
+* `add $REG, $REG` + `add $REG, $NUMBER`
+  * Add a number, or the contents of another register, to a register.
 * `inc $REG`
   * Increment the contents of the given register.
-* `add $REG, $REG`
+* `mov $REG, $NUMBER`
+* `mov $REG, $REG`
+  * Move a number into the specified register.
+* `nop`
+  * Do nothing.
+* `xor $REG, $REG`
+  * Set the given register to be zero.
 * `int 0x80`
-  * Call the kernel
+  * Call the kernel.
 
-Supported registers are limited to the 64-bit registers:
+Supported registers are limited to the following 64-bit registers:
 
 * `rax`
 * `rbx`
 * `rcx`
 * `rdx`.
 
-No other registers are supported.
-
 There is support for storing fixed-data within our program, and locating that.  See [hello.asm](hello.asm) for an example of that.
 
+We have some other limitations:
 
-## Example
+* There is notably no support for comparison instructions, stack instructions and control-flow instructions.
+* The entry-point is __always__ at the beginning of the source.
+* You can only reference data AFTER it has been declared.
+  * These are added to the `data` section of the generated binary, but must be defined first.
+  * See [hello.asm](hello.asm) for an example of that.
+
+
+
+## Installation
+
+If you have this repository cloned locally you can build the assembler like so:
+
+    cd cmd/assembler
+    go build .
+    go install .
+
+If you wish to fetch and install via your existing toolchain:
+
+    go install github.com/skx/assembler/cmd/assembler
+
+You can repeat for the other commands if you wish:
+
+    go install github.com/skx/assembler/cmd/lexer
+    go install github.com/skx/assembler/cmd/parser
+
+
+## Example Usage
 
 Build the assembler:
 
+     $ cd cmd/assembler
      $ go build .
 
 Compile the [sample program](test.asm), and execute it showing the return-code:
 
-     $ ./assembler  test.in  && ./a.out  ; echo $?
+     $ cmd/assembler/assembler test.asm && ./a.out ; echo $?
      9
 
 Or run the [hello.asm](hello.asm) example:
 
-     $ ./assembler  hello.in  && ./a.out
-     Hello, world\nGGoodbye, world\n
+     $ cmd/assembler/assembler  hello.in && ./a.out
+     Hello, world
+     Goodbye, world
 
-Meh, close enough..
+You'll note that the `\n` character was correctly expanded into a newline.
 
 
 ## Internals
 
-I'm slowly moving towards a better structure, although this is in-flux.  You
-can see various tools beneath [cmd/](cmd/) for example:
+The core of our code consists of three simple packages:
+
+* A simple tokenizer [lexer/lexer.go](lexer/lexer.go)
+* A simple parser [parser/parser.go](parser/parser.go)
+* A simple compiler [compiler/compiler.go](compiler/complier.go)
+* A simple elf-generator [elf/elf.go](elf/elf.go)
+  * Taken from [vishen/go-x64-executable](https://github.com/vishen/go-x64-executable/).
+
+In addition to the package modules we also have a couple of binaries:
 
 * `cmd/lexer`
   * Show the output of lexing a program.
+  * This is useful for debugging and development-purposes, it isn't expected to be useful to end-users.
 * `cmd/parser`
   * Show the output of parsing a program.
+    * This is useful for debugging and development-purposes, it isn't expected to be useful to end-users.
+* `cmd/assembler`
+  * Assemble a program, producing an executable binary.
 
-Both of those operate the same way, so for example:
+These commands located beneath `cmd` each operate the same way.  They each take a single argument which is a file containing assembly-language instructions.
+
+For example here is how you'd build and test the parser:
 
     cd cmd/parser
     go build .
-    ./parser ../../test.in
     $ ./parser ../../test.asm
     &{{INSTRUCTION xor} [{REGISTER rax} {REGISTER rax}]}
     &{{INSTRUCTION inc} [{REGISTER rax}]}
@@ -91,13 +136,23 @@ Both of those operate the same way, so for example:
     &{{INSTRUCTION add} [{REGISTER rbx} {REGISTER rcx}]}
     &{{INSTRUCTION int} [{NUMBER 0x80}]}
 
-(The lexer would give a simple stream of tokens, instead of the parsed instructions and their operands.  But the same basic usage is present.)
 
-In the future we'll have `cmd/compiler` to run the compilation process, but that is still work in progress.
+### Adding New Instructions
+
+This is how you might add a new instruction to the assembler, for example you might add `jmp 0x00000` or some similar instruction:
+
+* Add a new token-type for the instruction to [token/token.go](token/token.go)
+  * i.e. Update `known` to map to an instruction.
+* Add a new table-entry to [parser/parser.go](parser/parser.go)
+  * i.e. Set the instruction-length in `parseInstruction`
+* Generate the appropriate output in `compiler/compiler.go`
+  * i.e. Emit the opcode
+
+Ideally in the future we wouldn't need to update both the tokenizer __and__ the parser, but this is a work in progress.
 
 
 
-## Debugging
+### Debugging Generated Binaries
 
 Launch the binary under gdb:
 
@@ -118,5 +173,13 @@ Dissassemble:
 Or show string-contents at an address:
 
     (gdb) x/s 0x400000
+
+
+## Bugs?
+
+Feel free to report, as this is more a proof of concept rather than a robust tool they are to be expected.
+
+Specifically I expect that we're missing support for many instructions, but I hope the code generated for those that is present is correct.
+
 
 Steve

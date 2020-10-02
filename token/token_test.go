@@ -1,32 +1,23 @@
 package token
 
 import (
-	"strings"
 	"testing"
 )
 
 // Test looking up values succeeds, then fails
 func TestLookup(t *testing.T) {
 
-	for key, val := range keywords {
+	for key, val := range known {
 
 		// Obviously this will pass.
 		if LookupIdentifier(key) != val {
 			t.Errorf("Lookup of %s failed", key)
 		}
 
-		// Once the keywords are uppercase they'll no longer
+		// Once the keywords are "doubled" they'll no longer
 		// match - so we find them as identifiers.
-		if LookupIdentifier(strings.ToUpper(key)) != IDENT {
+		if LookupIdentifier(key+key) != IDENTIFIER {
 			t.Errorf("Lookup of %s failed", key)
 		}
-	}
-}
-
-// TestPosition doesn't really test anything :/
-func TestPosition(t *testing.T) {
-	x := &Token{}
-	if !strings.Contains(x.Position(), ", column") {
-		t.Fatalf("failed to get position")
 	}
 }

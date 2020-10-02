@@ -52,6 +52,7 @@ var known = map[string]Type{
 	"inc": INSTRUCTION,
 	"add": INSTRUCTION,
 	"int": INSTRUCTION,
+	"nop": INSTRUCTION,
 
 	// registers
 	// TODO: more
@@ -63,6 +64,7 @@ var known = map[string]Type{
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not
 func LookupIdentifier(identifier string) Type {
+
 	if tok, ok := known[identifier]; ok {
 		return tok
 	}

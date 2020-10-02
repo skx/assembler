@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/skx/assembler/parser"
-	"github.com/skx/assembler/token"
 )
 
 func main() {
@@ -26,14 +25,10 @@ func main() {
 
 	p := parser.New(string(data))
 
-	i := p.NextToken()
-	for i.Instruction.Type != token.EOF {
-		fmt.Printf("%v\n", i)
+	stmt := p.Next()
+	for stmt != nil {
+		fmt.Printf("%v\n", stmt)
 
-		// Illegal?  Then stop
-		if i.Instruction.Type == token.ILLEGAL {
-			return
-		}
-		i = p.NextToken()
+		stmt = p.Next()
 	}
 }

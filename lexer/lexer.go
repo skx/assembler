@@ -247,8 +247,6 @@ func (l *Lexer) readLabel() (string, error) {
 		}
 		out = out + string(l.ch)
 	}
-
-	return out, nil
 }
 
 // determinate ch is identifier or not.  Identifiers may be alphanumeric,

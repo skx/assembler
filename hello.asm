@@ -1,30 +1,20 @@
-.hello-world DB   "Hello, world\n"
-.goodbye-world DB "Goodbye, world\n"
+.hello   DB "Hello, world\n"
+.goodbye DB "Goodbye, world\n"
 
-        xor rax, rax
-        xor rbx, rbx
+        mov rdx, 13        ;; write this many characters
+        mov rcx, hello     ;; starting at the string
+        mov rbx, 1         ;; output is STDOUT
+        mov rax, 4         ;; sys_write
+        int 0x80           ;; syscall
 
-        ;; write 15 characters
-        mov rdx, 15
-        ;; starting at the string
-        mov rcx, hello-world
-        ;; output is STDOUT
-        mov rbx, 1
-        ;; sys_write
-        mov rax, 4
-        ;; syscall
-        int 0x80
+        mov rdx, 15        ;; write this many characters
+        mov rcx, goodbye   ;; starting at the string
+        mov rax, 4         ;; sys_write
+        mov rbx, 1         ;; output is STDOUT
+        int 0x80           ;; syscall
 
-        ;; Goodbye-time
-        mov rdx, 18
-        mov rcx, goodbye-world
-        mov rax, 4
-        mov rbx, 1
-        int 0x80
 
-        ;; exit-code is 0
-        mov rbx, 0
-        ;;  sys_exit
-        mov rax, 1
-        ;; syscall
-        int 0x80
+        xor rbx, rbx       ;; exit-code is 0
+        xor rax, rax       ;; syscall will be 1 - so set to xero, then increase
+        inc rax            ;;
+        int 0x80           ;; syscall
