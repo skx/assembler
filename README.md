@@ -123,7 +123,7 @@ You'll note that the `\n` character was correctly expanded into a newline.
 
 # Internals
 
-The core of our code consists of three simple packages:
+The core of our code consists of a small number of simple packages:
 
 * A simple tokenizer [lexer/lexer.go](lexer/lexer.go)
 * A simple parser [parser/parser.go](parser/parser.go)
@@ -131,6 +131,7 @@ The core of our code consists of three simple packages:
 * A simple compiler [compiler/compiler.go](compiler/complier.go)
 * A simple elf-generator [elf/elf.go](elf/elf.go)
   * Taken from [vishen/go-x64-executable](https://github.com/vishen/go-x64-executable/).
+
 
 In addition to the package modules we also have a couple of binaries:
 
