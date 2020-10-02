@@ -34,6 +34,12 @@ type Compiler struct {
 
 	// patches we have to make, post-compilation.  Don't ask
 	patches map[int]int
+
+	// labels and the corresponding offsets we've seen.
+	labels map[string]int
+
+	// offsets which contain jumps to labels
+	labelTargets map[int]string
 }
 
 // New creates a new instance of the compiler
@@ -42,6 +48,12 @@ func New(src string) *Compiler {
 	c := &Compiler{p: parser.New(src), output: "a.out"}
 	c.dataOffsets = make(map[string]int)
 	c.patches = make(map[int]int)
+
+	// mapping of "label -> XXX"
+	c.labels = make(map[string]int)
+
+	// fixups we need to make offset-of-code -> label
+	c.labelTargets = make(map[int]string)
 
 	return c
 }
@@ -70,7 +82,14 @@ func (c *Compiler) Compile() error {
 			c.handleData(stmt)
 		case parser.Error:
 			return fmt.Errorf("error compiling - parser returned error %s", stmt.Value)
-			//		case parser.Label:
+		case parser.Label:
+			// So now we know the label with the given name
+			// corresponds to the CURRENT position in the
+			// generated binary-code.
+			//
+			// If anything refers to this we'll have to patch
+			// it up
+			c.labels[stmt.Name] = len(c.code)
 		case parser.Instruction:
 			err := c.compileInstruction(stmt)
 			if err != nil {
@@ -106,6 +125,25 @@ func (c *Compiler) Compile() error {
 	}
 
 	//
+	// OK now we need to patch references to labels
+	//
+	for o, s := range c.labelTargets {
+
+		offset := c.labels[s]
+
+		offset = 0x400000 + offset + 0x40 + (2 * 0x38)
+
+		// So we have a new offset.
+
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, uint32(offset))
+
+		for i, x := range buf {
+			c.code[i+o] = x
+		}
+
+	}
+	//
 	// Write.  The.  Elf.  Output.
 	//
 	e := elf.New()
@@ -139,6 +177,7 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 			return err
 		}
 		return nil
+
 	case "inc":
 		err := c.assembleINC(i)
 		if err != nil {
@@ -162,6 +201,17 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		return nil
 	case "nop":
 		c.code = append(c.code, 0x90)
+		return nil
+
+	case "push":
+		err := c.assemblePush(i)
+		if err != nil {
+			return err
+		}
+		return nil
+
+	case "ret":
+		c.code = append(c.code, 0xc3)
 		return nil
 	case "xor":
 		err := c.assembleXOR(i)
@@ -387,6 +437,35 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 	}
 
 	return fmt.Errorf("unknown MOV instruction: %v", i)
+
+}
+
+// assemblePush would compile "push offset", and "push 0x1234"
+func (c *Compiler) assemblePush(i parser.Instruction) error {
+
+	// Is this a number?  Just output it
+	if i.Operands[0].Type == token.NUMBER {
+		n, err := c.argToByteArray(i.Operands[1])
+		if err != nil {
+			return err
+		}
+		c.code = append(c.code, 0x68)
+		c.code = append(c.code, n...)
+		return nil
+	}
+
+	// Is this a label?
+	if i.Operands[0].Type == token.IDENTIFIER {
+
+		c.code = append(c.code, 0x68)
+
+		c.labelTargets[len(c.code)] = i.Operands[0].Literal
+
+		c.code = append(c.code, []byte{0x0, 0x0, 0x0, 0x0}...)
+		return nil
+	}
+
+	return fmt.Errorf("unknown push-type: %v", i)
 
 }
 

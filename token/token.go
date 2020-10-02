@@ -47,12 +47,14 @@ var known = map[string]Type{
 	"DB": DB,
 
 	// instructions we handle
-	"mov": INSTRUCTION,
-	"xor": INSTRUCTION,
-	"inc": INSTRUCTION,
-	"add": INSTRUCTION,
-	"int": INSTRUCTION,
-	"nop": INSTRUCTION,
+	"add":  INSTRUCTION,
+	"inc":  INSTRUCTION,
+	"int":  INSTRUCTION,
+	"mov":  INSTRUCTION,
+	"nop":  INSTRUCTION,
+	"push": INSTRUCTION,
+	"ret":  INSTRUCTION,
+	"xor":  INSTRUCTION,
 
 	// registers
 	// TODO: more

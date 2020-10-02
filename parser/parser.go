@@ -131,6 +131,8 @@ func (p *Parser) parseInstruction() Node {
 	args["int"] = 1
 	args["mov"] = 2
 	args["nop"] = 0
+	args["push"] = 1
+	args["ret"] = 0
 	args["xor"] = 2
 
 	// Get the current instruction
