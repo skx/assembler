@@ -1,3 +1,6 @@
+[![GoDoc](https://img.shields.io/static/v1?label=godoc&message=reference&color=blue)](https://pkg.go.dev/github.com/skx/assembler)
+[![Go Report Card](https://goreportcard.com/badge/github.com/skx/assembler)](https://goreportcard.com/report/github.com/skx/assembler)
+[![license](https://img.shields.io/github/license/skx/assembler.svg)](https://github.com/skx/assembler/blob/master/LICENSE)
 
 * [Assembler](#assembler)
   * [Limitations](#limitations)
