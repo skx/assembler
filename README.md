@@ -1,8 +1,8 @@
 # Assembler
 
-This repository contains a VERY BASIC assembler, which is capable of
-reading simple assembly-language programs, and generating an ELF binary
-from them.
+This repository contains a VERY BASIC x86-64 assembler, which is capable of
+reading assembly-language input, and generating a staticly linked ELF binary
+output.
 
 It is more a proof-of-concept than a useful assembler, but I hope to take it to the state where it can compile the kind of x86-64 assembly I produce in some of my other projects.
 
@@ -41,7 +41,7 @@ We don't support anywhere near the complete instruction-set which an assembly la
 * `int 0x80`
   * Call the kernel.
 
-Supported registers are limited to the following 64-bit registers:
+Note that in **all cases** we only support the following set of (four) registers:
 
 * `rax`
 * `rbx`
@@ -50,7 +50,7 @@ Supported registers are limited to the following 64-bit registers:
 
 There is support for storing fixed-data within our program, and locating that.  See [hello.asm](hello.asm) for an example of that.
 
-We have some other limitations:
+We also have some other (obvious) limitations:
 
 * There is notably no support for comparison instructions, stack instructions and control-flow instructions.
 * The entry-point is __always__ at the beginning of the source.
@@ -70,7 +70,7 @@ If you have this repository cloned locally you can build the assembler like so:
 
 If you wish to fetch and install via your existing toolchain:
 
-    go install github.com/skx/assembler/cmd/assembler
+    go get github.com/skx/assembler/cmd/assembler
 
 You can repeat for the other commands if you wish:
 
