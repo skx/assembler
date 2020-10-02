@@ -70,6 +70,7 @@ func (c *Compiler) SetOutput(path string) {
 //
 // Once the program has been completed an ELF executable will be produced
 func (c *Compiler) Compile() error {
+
 	//
 	// Walk over the parser-output
 	//
@@ -80,8 +81,10 @@ func (c *Compiler) Compile() error {
 
 		case parser.Data:
 			c.handleData(stmt)
+
 		case parser.Error:
 			return fmt.Errorf("error compiling - parser returned error %s", stmt.Value)
+
 		case parser.Label:
 			// So now we know the label with the given name
 			// corresponds to the CURRENT position in the
@@ -90,11 +93,13 @@ func (c *Compiler) Compile() error {
 			// If anything refers to this we'll have to patch
 			// it up
 			c.labels[stmt.Name] = len(c.code)
+
 		case parser.Instruction:
 			err := c.compileInstruction(stmt)
 			if err != nil {
 				return err
 			}
+
 		default:
 			return fmt.Errorf("unhandled node-type %v", stmt)
 		}
@@ -141,8 +146,8 @@ func (c *Compiler) Compile() error {
 		for i, x := range buf {
 			c.code[i+o] = x
 		}
-
 	}
+
 	//
 	// Write.  The.  Elf.  Output.
 	//
@@ -160,10 +165,18 @@ func (c *Compiler) Compile() error {
 // and stores the offset appropriately
 func (c *Compiler) handleData(d parser.Data) {
 
+	// Offset of the start of the data is the current
+	// length of the existing data.
 	offset := len(c.data)
+
+	// Add
 	c.data = append(c.data, d.Contents...)
 
+	// Save
 	c.dataOffsets[d.Name] = offset
+
+	// TODO: Do we care about alignment?  We might
+	// in the future.
 }
 
 // compileInstruction handles the instruction generation
@@ -184,6 +197,7 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 			return err
 		}
 		return nil
+
 	case "int":
 		n, err := c.argToByte(i.Operands[0])
 		if err != nil {
@@ -199,6 +213,7 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 			return err
 		}
 		return nil
+
 	case "nop":
 		c.code = append(c.code, 0x90)
 		return nil
@@ -213,6 +228,7 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 	case "ret":
 		c.code = append(c.code, 0xc3)
 		return nil
+
 	case "xor":
 		err := c.assembleXOR(i)
 		if err != nil {
@@ -222,7 +238,6 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 	}
 
 	return fmt.Errorf("unknown instruction %v", i)
-
 }
 
 // used by `int`
@@ -327,23 +342,20 @@ func (c *Compiler) assembleADD(i parser.Instruction) error {
 // assembleINC handles inc rax, rbx, etc.
 func (c *Compiler) assembleINC(i parser.Instruction) error {
 
-	if i.Operands[0].Literal == "rax" {
-		c.code = append(c.code, []byte{0x48, 0xff, 0xc0}...)
+	table := make(map[string][]byte)
+	table["rax"] = []byte{0x48, 0xff, 0xc0}
+	table["rbx"] = []byte{0x48, 0xff, 0xc3}
+	table["rcx"] = []byte{0x48, 0xff, 0xc1}
+	table["rdx"] = []byte{0x48, 0xff, 0xc2}
+
+	// Is this "inc rax|rbx..|rdx", or something in the table?
+	bytes, ok := table[i.Operands[0].Literal]
+	if ok {
+		c.code = append(c.code, bytes...)
 		return nil
 	}
-	if i.Operands[0].Literal == "rbx" {
-		c.code = append(c.code, []byte{0x48, 0xff, 0xc3}...)
-		return nil
-	}
-	if i.Operands[0].Literal == "rcx" {
-		c.code = append(c.code, []byte{0x48, 0xff, 0xc1}...)
-		return nil
-	}
-	if i.Operands[0].Literal == "rdx" {
-		c.code = append(c.code, []byte{0x48, 0xff, 0xc2}...)
-		return nil
-	}
-	return fmt.Errorf("unknown argument for XOR %v", i)
+
+	return fmt.Errorf("unknown argument for INC %v", i)
 }
 
 func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
