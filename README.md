@@ -1,3 +1,14 @@
+
+* [Assembler](#assembler)
+  * [Limitations](#limitations)
+  * [Installation](#installation)
+  * [Example Usage](#example-usage)
+* [Internals](#internals)
+  * [Adding New Instructions](#adding-new-instructions)
+  * [Debugging Generated Binaries](#debugging-generated-binaries)
+* [Bugs?](#bugs)
+
+
 # Assembler
 
 This repository contains a VERY BASIC x86-64 assembler, which is capable of
@@ -107,7 +118,7 @@ Or run the [hello.asm](hello.asm) example:
 You'll note that the `\n` character was correctly expanded into a newline.
 
 
-## Internals
+# Internals
 
 The core of our code consists of three simple packages:
 
@@ -146,7 +157,7 @@ For example here is how you'd build and test the parser:
     &{{INSTRUCTION int} [{NUMBER 0x80}]}
 
 
-### Adding New Instructions
+## Adding New Instructions
 
 This is how you might add a new instruction to the assembler, for example you might add `jmp 0x00000` or some similar instruction:
 
@@ -158,7 +169,7 @@ This is how you might add a new instruction to the assembler, for example you mi
 
 
 
-### Debugging Generated Binaries
+## Debugging Generated Binaries
 
 Launch the binary under gdb:
 
@@ -181,7 +192,7 @@ Or show string-contents at an address:
     (gdb) x/s 0x400000
 
 
-## Bugs?
+# Bugs?
 
 Feel free to report, as this is more a proof of concept rather than a robust tool they are to be expected.
 
