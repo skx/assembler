@@ -22,22 +22,27 @@ The code in this repository was born out of the process of experimenting with ge
 
 ## Limitations
 
-As you'll discover we do not have a proper parser, so we have considered only a couple of instructions:
+We don't support anywhere near the complete instruction-set which an assembly language programmer would expect.  Currently we support only things like this:
 
 * `mov $REG, $NUM`
+* `mov $REG, $REG`
   * Move a number into the specified register.
-* `xor $REG, [$REG]`
+* `xor $REG, $REG`
   * Set the given register to be zero.
 * `inc $REG`
   * Increment the contents of the given register.
-* `add rbx, rcx`
-  * `rbx` = `rbx` + `rcx`
-* `int 0x800`
+* `add $REG, $REG`
+* `int 0x80`
   * Call the kernel
 
-Supported registers only include `rax`, `rbx`, `rcx`, and `rdx`.  Zero other registers are supported.  No other instructions are supported.
+Supported registers are limited to the 64-bit registers:
 
-We have zero support for control-flow, or compiler directives.
+* `rax`
+* `rbx`
+* `rcx`
+* `rdx`.
+
+No other registers are supported.
 
 There is support for storing fixed-data within our program, and locating that.  See [hello.asm](hello.asm) for an example of that.
 
@@ -59,6 +64,37 @@ Or run the [hello.asm](hello.asm) example:
      Hello, world\nGGoodbye, world\n
 
 Meh, close enough..
+
+
+## Internals
+
+I'm slowly moving towards a better structure, although this is in-flux.  You
+can see various tools beneath [cmd/](cmd/) for example:
+
+* `cmd/lexer`
+  * Show the output of lexing a program.
+* `cmd/parser`
+  * Show the output of parsing a program.
+
+Both of those operate the same way, so for example:
+
+    cd cmd/parser
+    go build .
+    ./parser ../../test.in
+    $ ./parser ../../test.asm
+    &{{INSTRUCTION xor} [{REGISTER rax} {REGISTER rax}]}
+    &{{INSTRUCTION inc} [{REGISTER rax}]}
+    &{{INSTRUCTION mov} [{REGISTER rbx} {NUMBER 0x0000}]}
+    &{{INSTRUCTION mov} [{REGISTER rcx} {NUMBER 0x0007}]}
+    &{{INSTRUCTION add} [{REGISTER rbx} {REGISTER rcx}]}
+    &{{INSTRUCTION mov} [{REGISTER rcx} {NUMBER 0x0002}]}
+    &{{INSTRUCTION add} [{REGISTER rbx} {REGISTER rcx}]}
+    &{{INSTRUCTION int} [{NUMBER 0x80}]}
+
+(The lexer would give a simple stream of tokens, instead of the parsed instructions and their operands.  But the same basic usage is present.)
+
+In the future we'll have `cmd/compiler` to run the compilation process, but that is still work in progress.
+
 
 
 ## Debugging
