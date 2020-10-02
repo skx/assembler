@@ -1,4 +1,4 @@
-// Compiler is the package which is actually responsible for reading
+// Package compiler is the package which is actually responsible for reading
 // the user-program and generating the binary result.
 //
 // Internally this uses the parser, as you would expect
@@ -382,9 +382,8 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 			i.Operands[1].Type = token.NUMBER
 			i.Operands[1].Literal = fmt.Sprintf("%d", val)
 			return c.assembleMov(i, true)
-		} else {
-			return fmt.Errorf("reference to unknown label/data: %v\n", i.Operands[1])
 		}
+		return fmt.Errorf("reference to unknown label/data: %v", i.Operands[1])
 	}
 
 	return fmt.Errorf("unknown MOV instruction: %v", i)

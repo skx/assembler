@@ -1,3 +1,5 @@
+// Package parser consumes tokens from the lexer, and generates the AST
+// which is then walked to generate binary code.
 package parser
 
 import (
@@ -7,7 +9,7 @@ import (
 	"github.com/skx/assembler/token"
 )
 
-// Parse holds our state.
+// Parser holds our state.
 type Parser struct {
 	// program is our program, as a series of tokens
 	program []token.Token
