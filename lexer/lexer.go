@@ -52,16 +52,16 @@ func (l *Lexer) NextToken() token.Token {
 	l.skipWhitespace()
 
 	// skip single-line comments
-	if l.ch == rune(';') {
-		l.skipComment()
-		return (l.NextToken())
-	}
-	if l.ch == rune('#') {
+	if l.ch == rune(';') || l.ch == rune('#') {
 		l.skipComment()
 		return (l.NextToken())
 	}
 
 	switch l.ch {
+
+	case rune(0):
+		tok.Literal = ""
+		tok.Type = token.EOF
 
 	case rune(':'):
 		label, err := l.readLabel()
@@ -83,6 +83,7 @@ func (l *Lexer) NextToken() token.Token {
 
 	case rune(','):
 		tok = token.Token{Type: token.COMMA, Literal: ","}
+
 	case rune('"'):
 		str, err := l.readString('"')
 		if err == nil {
@@ -92,12 +93,9 @@ func (l *Lexer) NextToken() token.Token {
 			tok.Literal = err.Error()
 			tok.Type = token.ILLEGAL
 		}
-	case rune(0):
-		tok.Literal = ""
-		tok.Type = token.EOF
 
 	default:
-		// Number
+		// Number?
 		if isDigit(l.ch) {
 			tok := l.readDecimal()
 			return tok
