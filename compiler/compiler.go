@@ -191,12 +191,29 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		}
 		return nil
 
+	case "clc":
+		c.code = append(c.code, 0xf8)
+		return nil
+
+	case "cld":
+		c.code = append(c.code, 0xfc)
+		return nil
+
+	case "cli":
+		c.code = append(c.code, 0xfa)
+		return nil
+
+	case "cmc":
+		c.code = append(c.code, 0xf5)
+		return nil
+
 	case "dec":
 		err := c.assembleDEC(i)
 		if err != nil {
 			return err
 		}
 		return nil
+
 	case "inc":
 		err := c.assembleINC(i)
 		if err != nil {
@@ -233,6 +250,18 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 
 	case "ret":
 		c.code = append(c.code, 0xc3)
+		return nil
+
+	case "stc":
+		c.code = append(c.code, 0xf9)
+		return nil
+
+	case "std":
+		c.code = append(c.code, 0xfd)
+		return nil
+
+	case "sti":
+		c.code = append(c.code, 0xfb)
 		return nil
 
 	case "sub":

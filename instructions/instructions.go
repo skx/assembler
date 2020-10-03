@@ -26,6 +26,7 @@ func init() {
 
 	// Setup our instruction-lengths
 	InstructionLengths = make(map[string]int)
+
 	InstructionLengths["add"] = 2
 	InstructionLengths["dec"] = 1
 	InstructionLengths["inc"] = 1
@@ -36,6 +37,15 @@ func init() {
 	InstructionLengths["ret"] = 0
 	InstructionLengths["sub"] = 2
 	InstructionLengths["xor"] = 2
+
+	// Processor control instructions
+	InstructionLengths["clc"] = 0
+	InstructionLengths["cld"] = 0
+	InstructionLengths["cli"] = 0
+	InstructionLengths["cmc"] = 0
+	InstructionLengths["stc"] = 0
+	InstructionLengths["std"] = 0
+	InstructionLengths["sti"] = 0
 
 	// Now record the known-instructions
 	for k := range InstructionLengths {

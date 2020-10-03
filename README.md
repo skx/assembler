@@ -61,8 +61,10 @@ We don't support anywhere near the complete instruction-set which an assembly la
   * Subtract a number, or the contents of another register, from a register.
 * `xor $REG, $REG`
   * Set the given register to be zero.
-* `int 0x80`
+* `int $NUM`
   * Call the kernel.
+* Processor (flag) control instructions:
+  * `clc`, `cld`, `cli`, `cmc`, `stc`, `std`, and `sti`.
 
 Note that in **all cases** we only support the following set of (four) registers:
 
