@@ -134,7 +134,7 @@ The core of our code consists of a small number of simple packages:
 * A simple tokenizer [lexer/lexer.go](lexer/lexer.go)
 * A simple parser [parser/parser.go](parser/parser.go)
   * This populates a simple internal-form/AST [parser/ast.go](parser/ast.go).
-* A simple compiler [compiler/compiler.go](compiler/complier.go)
+* A simple compiler [compiler/compiler.go](compiler/compiler.go)
 * A simple elf-generator [elf/elf.go](elf/elf.go)
   * Taken from [vishen/go-x64-executable](https://github.com/vishen/go-x64-executable/).
 
