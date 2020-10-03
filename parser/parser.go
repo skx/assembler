@@ -12,15 +12,17 @@ import (
 
 // Parser holds our state.
 type Parser struct {
-	// program is our program, as a series of tokens
+	// program holds our lexed program, as a series of tokens.
 	program []token.Token
 
-	// Position within the string
+	// position holds our current offset within the program
+	// above.
 	position int
 }
 
-// New creates a new Parse, which will parse the specified
-// input program into a series of tokens.
+// New creates a new Parser, which will parse the specified
+// input program into a series of tokens, and then allow it
+// to be parsed.
 func New(input string) *Parser {
 
 	// Create our parser
@@ -59,10 +61,13 @@ func (p *Parser) Next() Node {
 		tok := p.program[p.position]
 
 		switch tok.Type {
-		case token.INSTRUCTION:
-			return p.parseInstruction()
+
 		case token.DATA:
 			return p.parseData()
+
+		case token.INSTRUCTION:
+			return p.parseInstruction()
+
 		case token.LABEL:
 			return p.parseLabel()
 		}
@@ -215,7 +220,7 @@ func (p *Parser) TakeTwoArguments() ([]token.Token, error) {
 	}
 	two := p.program[p.position]
 	if two.Type != token.NUMBER && two.Type != token.REGISTER && two.Type != token.IDENTIFIER {
-		return toks, fmt.Errorf("expected REGISTER|NUMBER, got %v", two)
+		return toks, fmt.Errorf("expected REGISTER|NUMBER|IDENTIFIER, got %v", two)
 	}
 	toks = append(toks, two)
 
@@ -242,7 +247,7 @@ func (p *Parser) TakeOneArgument() ([]token.Token, error) {
 	// add the argument
 	one := p.program[p.position]
 	if one.Type != token.REGISTER && one.Type != token.NUMBER && one.Type != token.IDENTIFIER {
-		return toks, fmt.Errorf("expected REG|NUM, got %v", one)
+		return toks, fmt.Errorf("expected REGISTER|NUMBER|IDENTIFIER, got %v", one)
 	}
 	toks = append(toks, one)
 
