@@ -43,6 +43,8 @@ We don't support anywhere near the complete instruction-set which an assembly la
 
 * `add $REG, $REG` + `add $REG, $NUMBER`
   * Add a number, or the contents of another register, to a register.
+* `dec $REG`
+  * Decrement the contents of the given register.
 * `inc $REG`
   * Increment the contents of the given register.
 * `mov $REG, $NUMBER`
@@ -55,6 +57,8 @@ We don't support anywhere near the complete instruction-set which an assembly la
 * `ret`
   * Return from call.
   * **NOTE**: We don't actually support making calls, though that can be emulated via `push` - see [jmp.asm](jmp.asm) for an example.
+* `sub $REG, $REG` + `sub $REG, $NUMBER`
+  * Subtract a number, or the contents of another register, from a register.
 * `xor $REG, $REG`
   * Set the given register to be zero.
 * `int 0x80`

@@ -191,6 +191,12 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		}
 		return nil
 
+	case "dec":
+		err := c.assembleDEC(i)
+		if err != nil {
+			return err
+		}
+		return nil
 	case "inc":
 		err := c.assembleINC(i)
 		if err != nil {
@@ -229,6 +235,12 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		c.code = append(c.code, 0xc3)
 		return nil
 
+	case "sub":
+		err := c.assembleSUB(i)
+		if err != nil {
+			return err
+		}
+		return nil
 	case "xor":
 		err := c.assembleXOR(i)
 		if err != nil {
@@ -337,6 +349,25 @@ func (c *Compiler) assembleADD(i parser.Instruction) error {
 	}
 
 	return fmt.Errorf("unhandled ADD instruction %v", i)
+}
+
+// accembleDEC handles dec rax, rbx, etc.
+func (c *Compiler) assembleDEC(i parser.Instruction) error {
+
+	table := make(map[string][]byte)
+	table["rax"] = []byte{0x48, 0xff, 0xc8}
+	table["rbx"] = []byte{0x48, 0xff, 0xcb}
+	table["rcx"] = []byte{0x48, 0xff, 0xc9}
+	table["rdx"] = []byte{0x48, 0xff, 0xca}
+
+	// Is this "dec rax|rbx..|rdx", or something in the table?
+	bytes, ok := table[i.Operands[0].Literal]
+	if ok {
+		c.code = append(c.code, bytes...)
+		return nil
+	}
+
+	return fmt.Errorf("unknown argument for DEC %v", i)
 }
 
 // assembleINC handles inc rax, rbx, etc.
@@ -479,6 +510,78 @@ func (c *Compiler) assemblePush(i parser.Instruction) error {
 
 	return fmt.Errorf("unknown push-type: %v", i)
 
+}
+
+// assembleSUB handles subtraction.
+func (c *Compiler) assembleSUB(i parser.Instruction) error {
+
+	// We use a simple table for the register- register-case.
+	type regs struct {
+		A string
+		B string
+	}
+	// Create a simple map
+	codes := make(map[regs]([]byte))
+
+	codes[regs{A: "rax", B: "rax"}] = []byte{0x48, 0x29, 0xc0}
+	codes[regs{A: "rax", B: "rbx"}] = []byte{0x48, 0x29, 0xd8}
+	codes[regs{A: "rax", B: "rcx"}] = []byte{0x48, 0x29, 0xc8}
+	codes[regs{A: "rax", B: "rdx"}] = []byte{0x48, 0x29, 0xd0}
+
+	codes[regs{A: "rbx", B: "rax"}] = []byte{0x48, 0x29, 0xc3}
+	codes[regs{A: "rbx", B: "rbx"}] = []byte{0x48, 0x29, 0xdb}
+	codes[regs{A: "rbx", B: "rcx"}] = []byte{0x48, 0x29, 0xcb}
+	codes[regs{A: "rbx", B: "rdx"}] = []byte{0x48, 0x29, 0xd3}
+
+	codes[regs{A: "rcx", B: "rax"}] = []byte{0x48, 0x29, 0xc1}
+	codes[regs{A: "rcx", B: "rbx"}] = []byte{0x48, 0x29, 0xd9}
+	codes[regs{A: "rcx", B: "rcx"}] = []byte{0x48, 0x29, 0xc9}
+	codes[regs{A: "rcx", B: "rdx"}] = []byte{0x48, 0x29, 0xd1}
+
+	codes[regs{A: "rdx", B: "rax"}] = []byte{0x48, 0x29, 0xc2}
+	codes[regs{A: "rdx", B: "rbx"}] = []byte{0x48, 0x29, 0xda}
+	codes[regs{A: "rdx", B: "rcx"}] = []byte{0x48, 0x29, 0xca}
+	codes[regs{A: "rdx", B: "rdx"}] = []byte{0x48, 0x29, 0xd2}
+
+	// simple registers?
+	bytes, ok := codes[regs{A: i.Operands[0].Literal,
+		B: i.Operands[1].Literal}]
+
+	if ok {
+		c.code = append(c.code, bytes...)
+		return nil
+	}
+
+	// OK number added to a register?
+	if i.Operands[0].Type == token.REGISTER &&
+		i.Operands[1].Type == token.NUMBER {
+
+		// Convert the integer to a four-byte/64-bit value
+		n, err := c.argToByteArray(i.Operands[1])
+		if err != nil {
+			return err
+		}
+
+		// Work out the register
+		switch i.Operands[0].Literal {
+		case "rax":
+			c.code = append(c.code, []byte{0x48, 0x2d}...)
+		case "rbx":
+			c.code = append(c.code, []byte{0x48, 0x81, 0xeb}...)
+		case "rcx":
+			c.code = append(c.code, []byte{0x48, 0x81, 0xe9}...)
+		case "rdx":
+			c.code = append(c.code, []byte{0x48, 0x81, 0xea}...)
+		default:
+			return fmt.Errorf("SUB %s, number not implemented", i.Operands[0].Literal)
+		}
+
+		// Now append the value
+		c.code = append(c.code, n...)
+		return nil
+	}
+
+	return fmt.Errorf("unhandled SUB instruction %v", i)
 }
 
 // assembleXOR handles xor rax, rbx, etc.

@@ -27,12 +27,14 @@ func init() {
 	// Setup our instruction-lengths
 	InstructionLengths = make(map[string]int)
 	InstructionLengths["add"] = 2
+	InstructionLengths["dec"] = 1
 	InstructionLengths["inc"] = 1
 	InstructionLengths["int"] = 1
 	InstructionLengths["mov"] = 2
 	InstructionLengths["nop"] = 0
 	InstructionLengths["push"] = 1
 	InstructionLengths["ret"] = 0
+	InstructionLengths["sub"] = 2
 	InstructionLengths["xor"] = 2
 
 	// Now record the known-instructions
