@@ -4,6 +4,7 @@ package parser
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/skx/assembler/instructions"
 	"github.com/skx/assembler/lexer"
@@ -108,17 +109,64 @@ func (p *Parser) parseData() Node {
 		return Error{Value: "Unexpected EOF parsing data"}
 	}
 
-	// Here we have to look for NUM, NUM, NUM ..
-	// for the moment we only handle the string-case
-	str := p.program[p.position]
-	if str.Type != token.STRING {
-		return Error{Value: fmt.Sprintf("expected string, got %v", db)}
+	//
+	// We support:
+	//   .foo DB "String"
+	//
+	// Or
+	//   .foo DB 0x03, 0x4...
+	//
+	// If the next token is a string handle that.
+	cur := p.program[p.position]
+	if cur.Type == token.STRING {
+		// bump past the string
+		p.position++
+
+		d.Contents = []byte(cur.Literal)
+		return d
 	}
 
-	// bump past the string
-	p.position++
+	// If the type isn't a number that's an error
+	if cur.Type != token.NUMBER {
+		return Error{Value: fmt.Sprintf("expected string|number-array, got %v", cur)}
+	}
 
-	d.Contents = []byte(str.Literal)
+	// OK so we've got number
+	for cur.Type == token.NUMBER {
+
+		// Parse it
+		num, err := strconv.ParseInt(cur.Literal, 0, 64)
+		if err != nil {
+			return Error{Value: fmt.Sprintf("failed to convert '%s' to number:%s", cur.Literal, err)}
+		}
+
+		// Add to the array
+		d.Contents = append(d.Contents, byte(num))
+
+		// skip past the number
+		p.position++
+
+		// end of program?
+		if p.position >= len(p.program) {
+			break
+		}
+
+		// if the next token is not a comma then we're done
+		if p.program[p.position].Type != token.COMMA {
+			break
+		}
+
+		// Otherwise skip over the comma
+		p.position++
+
+		// end of program?
+		if p.position >= len(p.program) {
+			break
+		}
+
+		cur = p.program[p.position]
+	}
+
 	return d
 }
 
