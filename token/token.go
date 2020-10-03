@@ -47,6 +47,7 @@ const (
 // known things we can handle
 var known = map[string]Type{
 	"DB": DB,
+	"db": DB,
 
 	// registers
 	// TODO: more
