@@ -49,12 +49,23 @@ var known = map[string]Type{
 	"DB": DB,
 	"db": DB,
 
-	// registers
-	// TODO: more
+	// Things we parse as registers
 	"rax": REGISTER,
 	"rbx": REGISTER,
 	"rcx": REGISTER,
 	"rdx": REGISTER,
+	"rbp": REGISTER,
+	"rsp": REGISTER,
+	"rsi": REGISTER,
+	"rdi": REGISTER,
+	"r8":  REGISTER,
+	"r9":  REGISTER,
+	"r10": REGISTER,
+	"r11": REGISTER,
+	"r12": REGISTER,
+	"r13": REGISTER,
+	"r14": REGISTER,
+	"r15": REGISTER,
 }
 
 // LookupIdentifier used to determinate whether identifier is keyword nor not
