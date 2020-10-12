@@ -241,6 +241,13 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		c.code = append(c.code, 0x90)
 		return nil
 
+	case "pop":
+		err := c.assemblePop(i)
+		if err != nil {
+			return err
+		}
+		return nil
+
 	case "push":
 		err := c.assemblePush(i)
 		if err != nil {
@@ -536,6 +543,42 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 
 }
 
+// assemblePop would compile "pop offset", and "push 0x1234"
+func (c *Compiler) assemblePop(i parser.Instruction) error {
+
+	// known pop-types
+	table := make(map[string][]byte)
+	table["rax"] = []byte{0x58}
+	table["rbx"] = []byte{0x5b}
+	table["rcx"] = []byte{0x59}
+	table["rdx"] = []byte{0x5a}
+	table["rbp"] = []byte{0x5d}
+	table["rsp"] = []byte{0x5c}
+	table["rsi"] = []byte{0x5e}
+	table["rdi"] = []byte{0x5f}
+	table["r8"] = []byte{0x41, 0x58}
+	table["r9"] = []byte{0x41, 0x59}
+	table["r10"] = []byte{0x41, 0x5a}
+	table["r11"] = []byte{0x41, 0x5b}
+	table["r12"] = []byte{0x41, 0x5c}
+	table["r13"] = []byte{0x41, 0x5d}
+	table["r14"] = []byte{0x41, 0x5e}
+	table["r15"] = []byte{0x41, 0x5f}
+
+	// Is this "pop rax|rbx..|rdx", or something in the table?
+	if i.Operands[0].Type == token.REGISTER {
+		bytes, ok := table[i.Operands[0].Literal]
+		if ok {
+			c.code = append(c.code, bytes...)
+			return nil
+		}
+		return fmt.Errorf("unknown register in 'pop'")
+	}
+
+	return fmt.Errorf("unknown pop-type: %v", i)
+
+}
+
 // assemblePush would compile "push offset", and "push 0x1234"
 func (c *Compiler) assemblePush(i parser.Instruction) error {
 
@@ -561,8 +604,36 @@ func (c *Compiler) assemblePush(i parser.Instruction) error {
 		return nil
 	}
 
-	return fmt.Errorf("unknown push-type: %v", i)
+	// is this a register?
+	table := make(map[string][]byte)
+	table["rax"] = []byte{0x50}
+	table["rbx"] = []byte{0x53}
+	table["rcx"] = []byte{0x51}
+	table["rdx"] = []byte{0x52}
+	table["rbp"] = []byte{0x55}
+	table["rsp"] = []byte{0x54}
+	table["rsi"] = []byte{0x56}
+	table["rdi"] = []byte{0x57}
+	table["r8"] = []byte{0x41, 0x50}
+	table["r9"] = []byte{0x41, 0x51}
+	table["r10"] = []byte{0x41, 0x52}
+	table["r11"] = []byte{0x41, 0x53}
+	table["r12"] = []byte{0x41, 0x54}
+	table["r13"] = []byte{0x41, 0x55}
+	table["r14"] = []byte{0x41, 0x56}
+	table["r15"] = []byte{0x41, 0x57}
 
+	// Is this "push rax|rbx..|rdx", or something in the table?
+	if i.Operands[0].Type == token.REGISTER {
+		bytes, ok := table[i.Operands[0].Literal]
+		if ok {
+			c.code = append(c.code, bytes...)
+			return nil
+		}
+		return fmt.Errorf("unknown register in 'push'")
+	}
+
+	return fmt.Errorf("unknown push-type: %v", i)
 }
 
 // assembleSUB handles subtraction.
