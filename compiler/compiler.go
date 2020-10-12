@@ -288,6 +288,43 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 	return fmt.Errorf("unknown instruction %v", i)
 }
 
+func (c *Compiler) calcRM(dest string, src string) byte {
+
+	// registers
+	registers := []string{
+		"rax",
+		"rcx",
+		"rdx",
+		"rbx",
+		"rsp",
+		"rbp",
+		"rsi",
+		"rdi"}
+
+	dN := -1
+	sN := -1
+
+	for i, reg := range registers {
+		if reg == dest {
+			dN = i
+		}
+		if reg == src {
+			sN = i
+
+		}
+	}
+
+	if dN < 0 || sN < 0 {
+		panic(fmt.Sprintf("failed to lookup registers: %s %s", src, dest))
+	}
+
+	out := 0xc0 + (8 * sN) + dN
+	if out > 255 {
+		panic("calcRM received out of bounds value")
+	}
+	return byte(out)
+}
+
 // used by `int`
 func (c *Compiler) argToByte(t token.Token) (byte, error) {
 
@@ -317,41 +354,12 @@ func (c *Compiler) argToByteArray(t token.Token) ([]byte, error) {
 // assembleADD handles addition.
 func (c *Compiler) assembleADD(i parser.Instruction) error {
 
-	// Add instructions - we use a simple table for the register-
-	// register-case.
-	type regs struct {
-		A string
-		B string
-	}
-	// Create a simple map
-	codes := make(map[regs]([]byte))
-
-	codes[regs{A: "rax", B: "rax"}] = []byte{0x48, 0x01, 0xc0}
-	codes[regs{A: "rax", B: "rbx"}] = []byte{0x48, 0x01, 0xd8}
-	codes[regs{A: "rax", B: "rcx"}] = []byte{0x48, 0x01, 0xc8}
-	codes[regs{A: "rax", B: "rdx"}] = []byte{0x48, 0x01, 0xd0}
-
-	codes[regs{A: "rbx", B: "rax"}] = []byte{0x48, 0x01, 0xc3}
-	codes[regs{A: "rbx", B: "rbx"}] = []byte{0x48, 0x01, 0xdb}
-	codes[regs{A: "rbx", B: "rcx"}] = []byte{0x48, 0x01, 0xcb}
-	codes[regs{A: "rbx", B: "rdx"}] = []byte{0x48, 0x01, 0xd3}
-
-	codes[regs{A: "rcx", B: "rax"}] = []byte{0x48, 0x01, 0xc1}
-	codes[regs{A: "rcx", B: "rbx"}] = []byte{0x48, 0x01, 0xd9}
-	codes[regs{A: "rcx", B: "rcx"}] = []byte{0x48, 0x01, 0xc9}
-	codes[regs{A: "rcx", B: "rdx"}] = []byte{0x48, 0x01, 0xd1}
-
-	codes[regs{A: "rdx", B: "rax"}] = []byte{0x48, 0x01, 0xc2}
-	codes[regs{A: "rdx", B: "rbx"}] = []byte{0x48, 0x01, 0xda}
-	codes[regs{A: "rdx", B: "rcx"}] = []byte{0x48, 0x01, 0xca}
-	codes[regs{A: "rdx", B: "rdx"}] = []byte{0x48, 0x01, 0xd2}
-
-	// simple registers?
-	bytes, ok := codes[regs{A: i.Operands[0].Literal,
-		B: i.Operands[1].Literal}]
-
-	if ok {
-		c.code = append(c.code, bytes...)
+	// Two registers added?
+	if i.Operands[0].Type == token.REGISTER &&
+		i.Operands[1].Type == token.REGISTER {
+		c.code = append(c.code, []byte{0x48, 0x01}...)
+		out := c.calcRM(i.Operands[0].Literal, i.Operands[1].Literal)
+		c.code = append(c.code, out)
 		return nil
 	}
 
@@ -639,44 +647,16 @@ func (c *Compiler) assemblePush(i parser.Instruction) error {
 // assembleSUB handles subtraction.
 func (c *Compiler) assembleSUB(i parser.Instruction) error {
 
-	// We use a simple table for the register- register-case.
-	type regs struct {
-		A string
-		B string
-	}
-	// Create a simple map
-	codes := make(map[regs]([]byte))
-
-	codes[regs{A: "rax", B: "rax"}] = []byte{0x48, 0x29, 0xc0}
-	codes[regs{A: "rax", B: "rbx"}] = []byte{0x48, 0x29, 0xd8}
-	codes[regs{A: "rax", B: "rcx"}] = []byte{0x48, 0x29, 0xc8}
-	codes[regs{A: "rax", B: "rdx"}] = []byte{0x48, 0x29, 0xd0}
-
-	codes[regs{A: "rbx", B: "rax"}] = []byte{0x48, 0x29, 0xc3}
-	codes[regs{A: "rbx", B: "rbx"}] = []byte{0x48, 0x29, 0xdb}
-	codes[regs{A: "rbx", B: "rcx"}] = []byte{0x48, 0x29, 0xcb}
-	codes[regs{A: "rbx", B: "rdx"}] = []byte{0x48, 0x29, 0xd3}
-
-	codes[regs{A: "rcx", B: "rax"}] = []byte{0x48, 0x29, 0xc1}
-	codes[regs{A: "rcx", B: "rbx"}] = []byte{0x48, 0x29, 0xd9}
-	codes[regs{A: "rcx", B: "rcx"}] = []byte{0x48, 0x29, 0xc9}
-	codes[regs{A: "rcx", B: "rdx"}] = []byte{0x48, 0x29, 0xd1}
-
-	codes[regs{A: "rdx", B: "rax"}] = []byte{0x48, 0x29, 0xc2}
-	codes[regs{A: "rdx", B: "rbx"}] = []byte{0x48, 0x29, 0xda}
-	codes[regs{A: "rdx", B: "rcx"}] = []byte{0x48, 0x29, 0xca}
-	codes[regs{A: "rdx", B: "rdx"}] = []byte{0x48, 0x29, 0xd2}
-
-	// simple registers?
-	bytes, ok := codes[regs{A: i.Operands[0].Literal,
-		B: i.Operands[1].Literal}]
-
-	if ok {
-		c.code = append(c.code, bytes...)
+	// Two registers subtracted?
+	if i.Operands[0].Type == token.REGISTER &&
+		i.Operands[1].Type == token.REGISTER {
+		c.code = append(c.code, []byte{0x48, 0x29}...)
+		out := c.calcRM(i.Operands[0].Literal, i.Operands[1].Literal)
+		c.code = append(c.code, out)
 		return nil
 	}
 
-	// OK number added to a register?
+	// OK number subtracted from a register?
 	if i.Operands[0].Type == token.REGISTER &&
 		i.Operands[1].Type == token.NUMBER {
 
@@ -711,21 +691,14 @@ func (c *Compiler) assembleSUB(i parser.Instruction) error {
 // assembleXOR handles xor rax, rbx, etc.
 func (c *Compiler) assembleXOR(i parser.Instruction) error {
 
-	if i.Operands[0].Literal == "rax" {
-		c.code = append(c.code, []byte{0x48, 0x31, 0xc0}...)
+	// Two registers xor'd?
+	if i.Operands[0].Type == token.REGISTER &&
+		i.Operands[1].Type == token.REGISTER {
+		c.code = append(c.code, []byte{0x48, 0x31}...)
+		out := c.calcRM(i.Operands[0].Literal, i.Operands[1].Literal)
+		c.code = append(c.code, out)
 		return nil
 	}
-	if i.Operands[0].Literal == "rbx" {
-		c.code = append(c.code, []byte{0x48, 0x31, 0xdb}...)
-		return nil
-	}
-	if i.Operands[0].Literal == "rcx" {
-		c.code = append(c.code, []byte{0x48, 0x31, 0xc9}...)
-		return nil
-	}
-	if i.Operands[0].Literal == "rdx" {
-		c.code = append(c.code, []byte{0x48, 0x31, 0xd2}...)
-		return nil
-	}
+
 	return fmt.Errorf("unknown argument for XOR %v", i)
 }
