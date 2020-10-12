@@ -71,6 +71,12 @@ func (p *Parser) Next() Node {
 
 		case token.LABEL:
 			return p.parseLabel()
+
+		case token.RSQUARE:
+			p.position++
+
+		default:
+			fmt.Printf("Unhandled thing - definite bug: %v\n", tok)
 		}
 	}
 
@@ -199,8 +205,8 @@ func (p *Parser) parseInstruction() Node {
 			return Error{Value: err.Error()}
 
 		}
-		return Instruction{Instruction: tok.Literal, Operands: args}
 
+		return Instruction{Instruction: tok.Literal, Operands: args}
 	}
 	if count == 2 {
 
@@ -232,47 +238,29 @@ func (p *Parser) parseLabel() Node {
 // TakeTwoArguments handles fetching two arguments for an instruction.
 //
 // Arguments may be register-names, numbers, or label-values
-func (p *Parser) TakeTwoArguments() ([]token.Token, error) {
+func (p *Parser) TakeTwoArguments() ([]Operand, error) {
 
-	var toks []token.Token
+	var toks []Operand
 
-	// skip the instruction
-	p.position++
-
-	// ensure we're not out of the program
-	if p.position >= len(p.program) {
-		return toks, fmt.Errorf("unexpected EOF")
-	}
-
-	// add the argument
-	one := p.program[p.position]
-	if one.Type != token.REGISTER && one.Type != token.NUMBER && one.Type != token.IDENTIFIER {
-		return toks, fmt.Errorf("expected REG|NUM, got %v", one)
+	// Get the first argument
+	one, err := p.getOperand()
+	if err != nil {
+		return toks, err
 	}
 	toks = append(toks, one)
 
-	// Skip the comma
-	p.position++
-	if p.position >= len(p.program) {
-		return toks, fmt.Errorf("unexpected EOF")
-	}
+	// see if we have a comma
 	c := p.program[p.position]
 	if c.Type != token.COMMA {
 		return toks, fmt.Errorf("expected ',', got %v", c)
 	}
 
-	// Get the second arg.
-	p.position++
-	if p.position >= len(p.program) {
-		return toks, fmt.Errorf("unexpected EOF")
-	}
-	two := p.program[p.position]
-	if two.Type != token.NUMBER && two.Type != token.REGISTER && two.Type != token.IDENTIFIER {
-		return toks, fmt.Errorf("expected REGISTER|NUMBER|IDENTIFIER, got %v", two)
+	// Get the second argument
+	two, err := p.getOperand()
+	if err != nil {
+		return toks, err
 	}
 	toks = append(toks, two)
-
-	p.position++
 
 	return toks, nil
 }
@@ -280,26 +268,93 @@ func (p *Parser) TakeTwoArguments() ([]token.Token, error) {
 // TakeOneArgument reads the argument for a single-arg instruction.
 //
 // Arguments may be a register-name, number, or a label-value.
-func (p *Parser) TakeOneArgument() ([]token.Token, error) {
+func (p *Parser) TakeOneArgument() ([]Operand, error) {
 
-	var toks []token.Token
+	var toks []Operand
 
-	// skip the instruction
-	p.position++
+	// Get the argument
+	one, err := p.getOperand()
 
-	// ensure we're not out of the program
-	if p.position >= len(p.program) {
-		return toks, fmt.Errorf("unexpected EOF")
-	}
-
-	// add the argument
-	one := p.program[p.position]
-	if one.Type != token.REGISTER && one.Type != token.NUMBER && one.Type != token.IDENTIFIER {
-		return toks, fmt.Errorf("expected REGISTER|NUMBER|IDENTIFIER, got %v", one)
+	if err != nil {
+		return toks, err
 	}
 	toks = append(toks, one)
 
+	return toks, nil
+}
+
+func (p *Parser) getOperand() (Operand, error) {
+
+	var op Operand
+
+	// Skip over the instruction, because we want the arg
+	p.position++
+	if p.position >= len(p.program) {
+		return op, fmt.Errorf("unexpected EOF")
+	}
+
+	// Get the argument
+	thing := p.program[p.position]
+
+	if thing.Type == token.REGISTER ||
+		thing.Type == token.NUMBER {
+		op.Token = thing
+		p.position++
+		return op, nil
+	}
+
+	// Could be "identifer", could be "byte|word|qword ptr"
+	if thing.Literal != "byte" &&
+		thing.Literal != "word" &&
+		thing.Literal != "dword" &&
+		thing.Literal != "qword" {
+		op.Token = thing
+		p.position++
+		return op, nil
+	}
+
+	// OK indirection.  probably
+	if thing.Literal == "byte" {
+		op.Size = 8
+	}
+	if thing.Literal == "word" {
+		op.Size = 16
+	}
+	if thing.Literal == "dword" {
+		op.Size = 32
+	}
+	if thing.Literal == "qword" {
+		op.Size = 64
+	}
+
+	// So the next token must be "ptr"
+	p.position++
+	if p.position >= len(p.program) {
+		return op, fmt.Errorf("unexpected EOF #2")
+	}
+
+	// Get the next arg
+	next := p.program[p.position]
+	if next.Type != token.IDENTIFIER || next.Literal != "ptr" {
+		return op, fmt.Errorf("expected ptr after %s", thing.Literal)
+	}
 	p.position++
 
-	return toks, nil
+	if p.program[p.position].Type == token.LSQUARE {
+		op.Indirection = true
+
+		// skip the [
+		p.position++
+
+		// get the register + skip it
+		op.Token = p.program[p.position]
+		p.position++
+
+	} else {
+		p.position++
+		op.Token = p.program[p.position]
+		p.position++
+	}
+	return op, nil
+
 }

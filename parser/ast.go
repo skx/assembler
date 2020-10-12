@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+
 	"github.com/skx/assembler/token"
 )
 
@@ -42,6 +43,19 @@ func (d Data) String() string {
 	return fmt.Sprintf("<DATA: name:%s data:%v>", d.Name, d.Contents)
 }
 
+// Operand is the operand
+type Operand struct {
+	token.Token
+
+	// size is "byte ptr"
+	// size is "word ptr"
+	// size is "qword ptr"
+	Size int
+
+	// Indirection?
+	Indirection bool
+}
+
 // Instruction holds a parsed instruction.
 //
 // For example "mov rax, rax".
@@ -56,7 +70,7 @@ type Instruction struct {
 	//
 	// This will usually be an integer, a pair of registers,
 	// or a register and an integer
-	Operands []token.Token
+	Operands []Operand
 }
 
 // String outputs this Error structure as a string

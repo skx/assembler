@@ -24,6 +24,8 @@ type Token struct {
 const (
 	// Basic things
 	COMMA       = ","
+	LSQUARE     = "["
+	RSQUARE     = "]"
 	EOF         = "EOF"
 	LABEL       = "LABEL"
 	DATA        = "DATA"

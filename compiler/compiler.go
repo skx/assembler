@@ -222,7 +222,7 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		return nil
 
 	case "int":
-		n, err := c.argToByte(i.Operands[0])
+		n, err := c.argToByte(i.Operands[0].Token)
 		if err != nil {
 			return err
 		}
@@ -392,7 +392,7 @@ func (c *Compiler) assembleADD(i parser.Instruction) error {
 		i.Operands[1].Type == token.NUMBER {
 
 		// Convert the integer to a four-byte/64-bit value
-		n, err := c.argToByteArray(i.Operands[1])
+		n, err := c.argToByteArray(i.Operands[1].Token)
 		if err != nil {
 			return err
 		}
@@ -508,7 +508,7 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 		c.code = append(c.code, byte(reg))
 
 		// value
-		n, err := c.argToByteArray(i.Operands[1])
+		n, err := c.argToByteArray(i.Operands[1].Token)
 		if err != nil {
 			return err
 		}
@@ -585,7 +585,7 @@ func (c *Compiler) assemblePush(i parser.Instruction) error {
 
 	// Is this a number?  Just output it
 	if i.Operands[0].Type == token.NUMBER {
-		n, err := c.argToByteArray(i.Operands[1])
+		n, err := c.argToByteArray(i.Operands[1].Token)
 		if err != nil {
 			return err
 		}
@@ -608,11 +608,11 @@ func (c *Compiler) assemblePush(i parser.Instruction) error {
 	// is this a register?
 	table := make(map[string][]byte)
 	table["rax"] = []byte{0x50}
-	table["rbx"] = []byte{0x53}
 	table["rcx"] = []byte{0x51}
 	table["rdx"] = []byte{0x52}
-	table["rbp"] = []byte{0x55}
+	table["rbx"] = []byte{0x53}
 	table["rsp"] = []byte{0x54}
+	table["rbp"] = []byte{0x55}
 	table["rsi"] = []byte{0x56}
 	table["rdi"] = []byte{0x57}
 	table["r8"] = []byte{0x41, 0x50}
@@ -654,7 +654,7 @@ func (c *Compiler) assembleSUB(i parser.Instruction) error {
 		i.Operands[1].Type == token.NUMBER {
 
 		// Convert the integer to a four-byte/64-bit value
-		n, err := c.argToByteArray(i.Operands[1])
+		n, err := c.argToByteArray(i.Operands[1].Token)
 		if err != nil {
 			return err
 		}
