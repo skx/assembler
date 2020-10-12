@@ -33,6 +33,7 @@ func init() {
 	InstructionLengths["int"] = 1
 	InstructionLengths["mov"] = 2
 	InstructionLengths["nop"] = 0
+	InstructionLengths["pop"] = 1
 	InstructionLengths["push"] = 1
 	InstructionLengths["ret"] = 0
 	InstructionLengths["sub"] = 2
