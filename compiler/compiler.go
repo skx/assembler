@@ -288,6 +288,30 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 	return fmt.Errorf("unknown instruction %v", i)
 }
 
+// return register number - used for `mov`
+func (c *Compiler) getreg(reg string) int {
+
+	// registers
+	registers := []string{
+		"rax",
+		"rcx",
+		"rdx",
+		"rbx",
+		"rsp",
+		"rbp",
+		"rsi",
+		"rdi"}
+
+	for i, name := range registers {
+		if reg == name {
+			return i
+		}
+	}
+
+	panic(fmt.Sprintf("failed to lookup register: %s", reg))
+}
+
+// get magic value for two-register operations (`add`, `sub`, `xor`).
 func (c *Compiler) calcRM(dest string, src string) byte {
 
 	// registers
@@ -462,70 +486,39 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 	//
 	// Are we moving a register to another register?
 	//
-	if i.Operands[0].Type == token.REGISTER &&
-		i.Operands[1].Type == token.REGISTER {
-		fmt.Printf("TODO: mov reg,reg\n")
+	if i.Operands[0].Type == token.REGISTER && i.Operands[1].Type == token.REGISTER {
+
+		c.code = append(c.code, []byte{0x48, 0x89}...)
+		out := c.calcRM(i.Operands[0].Literal, i.Operands[1].Literal)
+		c.code = append(c.code, out)
 		return nil
+
 	}
 
 	//
 	// Are we moving a number to a register ?
 	//
-	if i.Operands[0].Type == token.REGISTER &&
-		i.Operands[1].Type == token.NUMBER {
+	if i.Operands[0].Type == token.REGISTER && i.Operands[1].Type == token.NUMBER {
 
-		if i.Operands[0].Literal == "rax" {
-			c.code = append(c.code, []byte{0x48, 0xc7, 0xc0}...)
+		// prefix
+		c.code = append(c.code, []byte{0x48, 0xc7}...)
 
-			n, err := c.argToByteArray(i.Operands[1])
-			if err != nil {
-				return err
-			}
+		// register name
+		reg := 0xc0 + c.getreg(i.Operands[0].Literal)
+		c.code = append(c.code, byte(reg))
 
-			if label {
-				c.patches[len(c.code)], _ = strconv.Atoi(i.Operands[1].Literal)
-			}
-			c.code = append(c.code, n...)
-			return nil
-		}
-		if i.Operands[0].Literal == "rbx" {
-			c.code = append(c.code, []byte{0x48, 0xc7, 0xc3}...)
-			n, err := c.argToByteArray(i.Operands[1])
-			if err != nil {
-				return err
-			}
-			if label {
-				c.patches[len(c.code)], _ = strconv.Atoi(i.Operands[1].Literal)
-			}
-			c.code = append(c.code, n...)
-			return nil
-		}
-		if i.Operands[0].Literal == "rcx" {
-			c.code = append(c.code, []byte{0x48, 0xc7, 0xc1}...)
-			n, err := c.argToByteArray(i.Operands[1])
-			if err != nil {
-				return err
-			}
-			if label {
-				c.patches[len(c.code)], _ = strconv.Atoi(i.Operands[1].Literal)
-			}
-			c.code = append(c.code, n...)
-			return nil
-		}
-		if i.Operands[0].Literal == "rdx" {
-			c.code = append(c.code, []byte{0x48, 0xc7, 0xc2}...)
-			n, err := c.argToByteArray(i.Operands[1])
-			if err != nil {
-				return err
-			}
-			if label {
-				c.patches[len(c.code)], _ = strconv.Atoi(i.Operands[1].Literal)
-			}
-			c.code = append(c.code, n...)
-			return nil
+		// value
+		n, err := c.argToByteArray(i.Operands[1])
+		if err != nil {
+			return err
 		}
 
-		return fmt.Errorf("moving a constant (number) to an unknown register: %v", i)
+		// hack
+		if label {
+			c.patches[len(c.code)], _ = strconv.Atoi(i.Operands[1].Literal)
+		}
+		c.code = append(c.code, n...)
+		return nil
 	}
 
 	// mov $reg, $id
