@@ -251,7 +251,7 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		c.code = append(c.code, n)
 		return nil
 
-	case "jmp", "jne", "je":
+	case "jmp", "jne", "je", "jz", "jnz":
 		err := c.assembleJMP(i)
 		if err != nil {
 			return err
@@ -593,9 +593,9 @@ func (c *Compiler) assembleJMP(i parser.Instruction) error {
 	switch i.Instruction {
 	case "jmp":
 		byte = 0xeb
-	case "je":
+	case "je", "jz":
 		byte = 0x74
-	case "jne":
+	case "jne", "jnz":
 		byte = 0x75
 	default:
 		return fmt.Errorf("unknown jmp type")
