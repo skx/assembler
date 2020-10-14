@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+
 	"github.com/skx/assembler/token"
 )
 
@@ -42,6 +43,35 @@ func (d Data) String() string {
 	return fmt.Sprintf("<DATA: name:%s data:%v>", d.Name, d.Contents)
 }
 
+// Operand is used to hold the operand for an instruction.
+//
+// Some instructions have zero operands (e.g. `nop`), others have
+// one (e.g. `inc rax`), and finally we have several which take two
+// operands (e.g. `mov rax, rbx`).
+//
+type Operand struct {
+	// Token contains our parent token.
+	token.Token
+
+	// If we're operating upon memory-addresses we need to be
+	// able to understand the size of the thing we're operating
+	// upon.
+	//
+	// For example `inc byte ptr [rax]` will increment a byte,
+	// or 8 bits.  We have different define sizes available to us:
+	//
+	//   byte -> 8 bits.
+	//   word -> 16 bits.
+	//  dword -> 32 bites.
+	//  qword -> 64 bites.
+	Size int
+
+	// Is indirection used?
+	//
+	// i.e. `rax` has no indirection, but `[rax]` does.
+	Indirection bool
+}
+
 // Instruction holds a parsed instruction.
 //
 // For example "mov rax, rax".
@@ -54,9 +84,8 @@ type Instruction struct {
 
 	// Operands holds the operands for this instruction.
 	//
-	// This will usually be an integer, a pair of registers,
-	// or a register and an integer
-	Operands []token.Token
+	// Operands will include numbers, registers, and indrected registers.
+	Operands []Operand
 }
 
 // String outputs this Error structure as a string

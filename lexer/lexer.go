@@ -84,6 +84,14 @@ func (l *Lexer) NextToken() token.Token {
 	case rune(','):
 		tok = token.Token{Type: token.COMMA, Literal: ","}
 
+	case rune('['):
+		tok = token.Token{Type: token.LSQUARE, Literal: "["}
+
+	case rune(']'):
+
+		l.readChar()
+		return (l.NextToken())
+
 	case rune('"'):
 		str, err := l.readString('"')
 		if err == nil {

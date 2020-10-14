@@ -222,7 +222,7 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		return nil
 
 	case "int":
-		n, err := c.argToByte(i.Operands[0])
+		n, err := c.argToByte(i.Operands[0].Token)
 		if err != nil {
 			return err
 		}
@@ -288,7 +288,7 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 	return fmt.Errorf("unknown instruction %v", i)
 }
 
-// return register number - used for `mov`
+// return register number - used for `dec`, `inc`, and `mov`.
 func (c *Compiler) getreg(reg string) int {
 
 	// registers
@@ -392,7 +392,7 @@ func (c *Compiler) assembleADD(i parser.Instruction) error {
 		i.Operands[1].Type == token.NUMBER {
 
 		// Convert the integer to a four-byte/64-bit value
-		n, err := c.argToByteArray(i.Operands[1])
+		n, err := c.argToByteArray(i.Operands[1].Token)
 		if err != nil {
 			return err
 		}
@@ -422,28 +422,67 @@ func (c *Compiler) assembleADD(i parser.Instruction) error {
 // accembleDEC handles dec rax, rbx, etc.
 func (c *Compiler) assembleDEC(i parser.Instruction) error {
 
-	table := make(map[string][]byte)
-	table["rax"] = []byte{0x48, 0xff, 0xc8}
-	table["rbx"] = []byte{0x48, 0xff, 0xcb}
-	table["rcx"] = []byte{0x48, 0xff, 0xc9}
-	table["rdx"] = []byte{0x48, 0xff, 0xca}
-	table["rbp"] = []byte{0x48, 0xff, 0xcd}
-	table["rsp"] = []byte{0x48, 0xff, 0xcc}
-	table["rsi"] = []byte{0x48, 0xff, 0xce}
-	table["rdi"] = []byte{0x48, 0xff, 0xcf}
-	table["r8"] = []byte{0x48, 0xff, 0xc8}
-	table["r9"] = []byte{0x48, 0xff, 0xc9}
-	table["r10"] = []byte{0x48, 0xff, 0xca}
-	table["r11"] = []byte{0x48, 0xff, 0xcb}
-	table["r12"] = []byte{0x48, 0xff, 0xcc}
-	table["r13"] = []byte{0x48, 0xff, 0xcd}
-	table["r14"] = []byte{0x48, 0xff, 0xce}
-	table["r15"] = []byte{0x48, 0xff, 0xcf}
+	// Decrement the contents of a register
+	if i.Operands[0].Indirection == false {
+		// prefix
+		c.code = append(c.code, []byte{0x48, 0xff}...)
 
-	// Is this "dec rax|rbx..|rdx", or something in the table?
-	bytes, ok := table[i.Operands[0].Literal]
-	if ok {
-		c.code = append(c.code, bytes...)
+		// register name
+		reg := 0xc0 + c.getreg(i.Operands[0].Literal)
+		c.code = append(c.code, byte(reg))
+
+		return nil
+	}
+
+	// indirect: byte
+	if i.Operands[0].Size == 8 {
+		// prefix
+		c.code = append(c.code, []byte{0x67, 0xfe}...)
+
+		// register name
+		reg := c.getreg(i.Operands[0].Literal)
+		reg += 0x08
+		c.code = append(c.code, byte(reg))
+
+		return nil
+	}
+
+	// indirect: word
+	if i.Operands[0].Size == 16 {
+		// prefix
+		c.code = append(c.code, []byte{0x67, 0x66, 0xff}...)
+
+		// register name
+		reg := c.getreg(i.Operands[0].Literal)
+		reg += 0x08
+		c.code = append(c.code, byte(reg))
+
+		return nil
+	}
+
+	// indirect: double word
+	if i.Operands[0].Size == 32 {
+		// prefix
+		c.code = append(c.code, []byte{0x67, 0xff}...)
+
+		// register name
+		reg := c.getreg(i.Operands[0].Literal)
+		reg += 0x08
+		c.code = append(c.code, byte(reg))
+
+		return nil
+	}
+
+	// indirect: quad word
+	if i.Operands[0].Size == 64 {
+		// prefix
+		c.code = append(c.code, []byte{0x67, 0x48, 0xff}...)
+
+		// register name
+		reg := c.getreg(i.Operands[0].Literal)
+		reg += 0x08
+		c.code = append(c.code, byte(reg))
+
 		return nil
 	}
 
@@ -453,28 +492,63 @@ func (c *Compiler) assembleDEC(i parser.Instruction) error {
 // assembleINC handles inc rax, rbx, etc.
 func (c *Compiler) assembleINC(i parser.Instruction) error {
 
-	table := make(map[string][]byte)
-	table["rax"] = []byte{0x48, 0xff, 0xc0}
-	table["rbx"] = []byte{0x48, 0xff, 0xc3}
-	table["rcx"] = []byte{0x48, 0xff, 0xc1}
-	table["rdx"] = []byte{0x48, 0xff, 0xc2}
-	table["rbp"] = []byte{0x48, 0xff, 0xc5}
-	table["rsp"] = []byte{0x48, 0xff, 0xc4}
-	table["rsi"] = []byte{0x48, 0xff, 0xc6}
-	table["rdi"] = []byte{0x48, 0xff, 0xc7}
-	table["r8"] = []byte{0x48, 0xff, 0xc0}
-	table["r9"] = []byte{0x48, 0xff, 0xc1}
-	table["r10"] = []byte{0x48, 0xff, 0xc2}
-	table["r11"] = []byte{0x48, 0xff, 0xc3}
-	table["r12"] = []byte{0x48, 0xff, 0xc4}
-	table["r13"] = []byte{0x48, 0xff, 0xc5}
-	table["r14"] = []byte{0x48, 0xff, 0xc6}
-	table["r15"] = []byte{0x48, 0xff, 0xc7}
+	// Increment the contents of a register
+	if i.Operands[0].Indirection == false {
+		// prefix
+		c.code = append(c.code, []byte{0x48, 0xff}...)
 
-	// Is this "inc rax|rbx..|rdx", or something in the table?
-	bytes, ok := table[i.Operands[0].Literal]
-	if ok {
-		c.code = append(c.code, bytes...)
+		// register name
+		reg := 0xc0 + c.getreg(i.Operands[0].Literal)
+		c.code = append(c.code, byte(reg))
+
+		return nil
+	}
+
+	// indirect: byte
+	if i.Operands[0].Size == 8 {
+		// prefix
+		c.code = append(c.code, []byte{0x67, 0xfe}...)
+
+		// register name
+		reg := c.getreg(i.Operands[0].Literal)
+		c.code = append(c.code, byte(reg))
+
+		return nil
+	}
+
+	// indirect: word
+	if i.Operands[0].Size == 16 {
+		// prefix
+		c.code = append(c.code, []byte{0x67, 0x66, 0xff}...)
+
+		// register name
+		reg := c.getreg(i.Operands[0].Literal)
+		c.code = append(c.code, byte(reg))
+
+		return nil
+	}
+
+	// indirect: double word
+	if i.Operands[0].Size == 32 {
+		// prefix
+		c.code = append(c.code, []byte{0x67, 0xff}...)
+
+		// register name
+		reg := c.getreg(i.Operands[0].Literal)
+		c.code = append(c.code, byte(reg))
+
+		return nil
+	}
+
+	// indirect: quad word
+	if i.Operands[0].Size == 64 {
+		// prefix
+		c.code = append(c.code, []byte{0x67, 0x48, 0xff}...)
+
+		// register name
+		reg := c.getreg(i.Operands[0].Literal)
+		c.code = append(c.code, byte(reg))
+
 		return nil
 	}
 
@@ -508,7 +582,7 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 		c.code = append(c.code, byte(reg))
 
 		// value
-		n, err := c.argToByteArray(i.Operands[1])
+		n, err := c.argToByteArray(i.Operands[1].Token)
 		if err != nil {
 			return err
 		}
@@ -585,7 +659,7 @@ func (c *Compiler) assemblePush(i parser.Instruction) error {
 
 	// Is this a number?  Just output it
 	if i.Operands[0].Type == token.NUMBER {
-		n, err := c.argToByteArray(i.Operands[1])
+		n, err := c.argToByteArray(i.Operands[1].Token)
 		if err != nil {
 			return err
 		}
@@ -608,11 +682,11 @@ func (c *Compiler) assemblePush(i parser.Instruction) error {
 	// is this a register?
 	table := make(map[string][]byte)
 	table["rax"] = []byte{0x50}
-	table["rbx"] = []byte{0x53}
 	table["rcx"] = []byte{0x51}
 	table["rdx"] = []byte{0x52}
-	table["rbp"] = []byte{0x55}
+	table["rbx"] = []byte{0x53}
 	table["rsp"] = []byte{0x54}
+	table["rbp"] = []byte{0x55}
 	table["rsi"] = []byte{0x56}
 	table["rdi"] = []byte{0x57}
 	table["r8"] = []byte{0x41, 0x50}
@@ -654,7 +728,7 @@ func (c *Compiler) assembleSUB(i parser.Instruction) error {
 		i.Operands[1].Type == token.NUMBER {
 
 		// Convert the integer to a four-byte/64-bit value
-		n, err := c.argToByteArray(i.Operands[1])
+		n, err := c.argToByteArray(i.Operands[1].Token)
 		if err != nil {
 			return err
 		}
