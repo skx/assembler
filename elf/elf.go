@@ -81,7 +81,7 @@ func (e *Elf) buildELF(textSection, dataSection []byte) []byte {
 	// Build Program Header
 	// Text Segment
 	o.WriteBytes(0x01, 0x00, 0x00, 0x00) // PT_LOAD, loadable segment. Both data and text segment use this.
-	o.WriteBytes(0x05, 0x00, 0x00, 0x00) // Flags: 0x4 executable, 0x2 write, 0x1 read
+	o.WriteBytes(0x07, 0x00, 0x00, 0x00) // Flags: 0x4 executable, 0x2 write, 0x1 read
 	o.WriteValue(8, 0)                   // textOffset)          // Offset from the beginning of the file. These values depend on how big the header and segment sizes are.
 	o.WriteValue(8, virtualStartAddress)
 	o.WriteValue(8, virtualStartAddress) // Physical address, irrelavnt on linux.
