@@ -44,9 +44,19 @@ We don't support anywhere near the complete instruction-set which an assembly la
 * `add $REG, $REG` + `add $REG, $NUMBER`
   * Add a number, or the contents of another register, to a register.
 * `dec $REG`
-  * Decrement the contents of the given register.
+  * Decrement the contents of the specified register.
+  * We also support indirection, so the following work:
+    * `inc byte ptr [$REG]`
+    * `inc word ptr [$REG]`
+    * `inc dword ptr [$REG]`
+    * `inc qword ptr [$REG]`
 * `inc $REG`
-  * Increment the contents of the given register.
+  * Increment the contents of the specified register.
+  * We also support indirection, so the following work:
+    * `inc byte ptr [$REG]`
+    * `inc word ptr [$REG]`
+    * `inc dword ptr [$REG]`
+    * `inc qword ptr [$REG]`
 * `mov $REG, $NUMBER`
 * `mov $REG, $REG`
   * Move a number into the specified register.
@@ -66,12 +76,18 @@ We don't support anywhere near the complete instruction-set which an assembly la
 * Processor (flag) control instructions:
   * `clc`, `cld`, `cli`, `cmc`, `stc`, `std`, and `sti`.
 
-Note that in **all cases** we only support the following set of (four) registers:
+Note that we really only support the following registers, you'll see that we only support the 64-bit registers (which means `rax` is supported but `eax`, `ax`, `ah`, and `al` are specifically __not__ supported):
 
 * `rax`
-* `rbx`
 * `rcx`
 * `rdx`
+* `rbx`
+* `rsp`
+* `rbp`
+* `rsi`
+* `rdi`
+
+There is _some_ support for the extended registers `r8`-`r15`, but this varies on a per-instruction basis and should not be relied upon.
 
 There is support for storing fixed-data within our program, and locating that.  See [hello.asm](hello.asm) for an example of that.
 
@@ -206,7 +222,7 @@ Or show string-contents at an address:
 
 Feel free to report, as this is more a proof of concept rather than a robust tool they are to be expected.
 
-Specifically I expect that we're missing support for many instructions, but I hope the code generated for those that is present is correct.
+Specifically we're missing support for many instructions, but I hope the code generated for those that is present is correct.
 
 
 Steve
