@@ -215,6 +215,9 @@ func (l *Lexer) readString(delim rune) (string, error) {
 			if l.ch == rune('n') {
 				l.ch = '\n'
 			}
+			if l.ch == rune('0') {
+				l.ch = rune(0)
+			}
 			if l.ch == rune('r') {
 				l.ch = '\r'
 			}
