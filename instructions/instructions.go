@@ -39,6 +39,11 @@ func init() {
 	InstructionLengths["sub"] = 2
 	InstructionLengths["xor"] = 2
 
+	// jump
+	InstructionLengths["jne"] = 1
+	InstructionLengths["je"] = 1
+	InstructionLengths["jmp"] = 1
+
 	// Processor control instructions
 	InstructionLengths["clc"] = 0
 	InstructionLengths["cld"] = 0
