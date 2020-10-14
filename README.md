@@ -43,6 +43,8 @@ We don't support anywhere near the complete instruction-set which an assembly la
 
 * `add $REG, $REG` + `add $REG, $NUMBER`
   * Add a number, or the contents of another register, to a register.
+* `call $LABEL`
+  * See [call.asm](call.asm) for an example.
 * `dec $REG`
   * Decrement the contents of the specified register.
   * We also support indirection, so the following work:
@@ -57,9 +59,9 @@ We don't support anywhere near the complete instruction-set which an assembly la
     * `inc word ptr [$REG]`
     * `inc dword ptr [$REG]`
     * `inc qword ptr [$REG]`
-* `jmp`, `je`, `jne`
+* `jmp $LABEL`, `je $LABEL`, `jne $LABEL`
   * We support jumping instructions, but only with -127/+128 byte displacements
-  * e.g. `jmp label`, see [jmp.asm](jmp.asm) for an example.
+  * See [jmp.asm](jmp.asm) for a simple example.
 * `mov $REG, $NUMBER`
 * `mov $REG, $REG`
   * Move a number into the specified register.
