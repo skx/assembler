@@ -57,13 +57,15 @@ We don't support anywhere near the complete instruction-set which an assembly la
     * `inc word ptr [$REG]`
     * `inc dword ptr [$REG]`
     * `inc qword ptr [$REG]`
+* `jmp`, `je`, `jne`
+  * We support jumping instructions, but only with -127/+128 byte displacements
+  * e.g. `jmp label`, see [jmp.asm](jmp.asm) for an example.
 * `mov $REG, $NUMBER`
 * `mov $REG, $REG`
   * Move a number into the specified register.
 * `nop`
   * Do nothing.
 * `push $NUMBER`, or `push $IDENTIFIER`
-  * See [jmp.asm](jmp.asm) for an example.
 * `ret`
   * Return from call.
   * **NOTE**: We don't actually support making calls, though that can be emulated via `push` - see [jmp.asm](jmp.asm) for an example.
