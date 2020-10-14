@@ -240,6 +240,7 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 			return err
 		}
 		return nil
+
 	case "clc":
 		c.code = append(c.code, 0xf8)
 		return nil
@@ -250,6 +251,13 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 
 	case "cli":
 		c.code = append(c.code, 0xfa)
+		return nil
+
+	case "cmp":
+		err := c.assembleCMP(i)
+		if err != nil {
+			return err
+		}
 		return nil
 
 	case "cmc":
@@ -488,6 +496,59 @@ func (c *Compiler) assembleCALL(i parser.Instruction) error {
 	c.calls[len(c.code)] = i.Operands[0].Literal
 	c.code = append(c.code, []byte{0x00, 0x00, 0x00, 0x00}...)
 
+	return nil
+}
+
+// Handle a comparison
+func (c *Compiler) assembleCMP(i parser.Instruction) error {
+
+	// We're only handling indirection at the moment
+	if i.Operands[0].Type != token.REGISTER &&
+		i.Operands[0].Indirection != true &&
+		i.Operands[1].Type != token.NUMBER {
+		return fmt.Errorf("we only support CMP size ptr [reg],NUMBER at the moment")
+	}
+
+	// The number we're comparing
+	n, err := strconv.ParseInt(i.Operands[1].Literal, 0, 64)
+	if err != nil {
+		return err
+	}
+
+	// Register number
+	r := byte(c.getreg(i.Operands[0].Literal))
+
+	// things we add
+	bytes := []byte{}
+
+	switch i.Operands[0].Size {
+
+	case 8:
+		bytes = []byte{0x80, 0x38 + r, byte(n)}
+	case 16:
+		bytes = []byte{0x66, 0x83, 0x38 + r}
+
+		buf := make([]byte, 2)
+		binary.LittleEndian.PutUint16(buf, uint16(n))
+		bytes = append(bytes, buf...)
+
+	case 32:
+		bytes = []byte{0x83, 0x38 + r}
+
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, uint32(n))
+		bytes = append(bytes, buf...)
+	case 64:
+		bytes = []byte{0x48, 0x83, 0x38 + r}
+
+		buf := make([]byte, 8)
+		binary.LittleEndian.PutUint64(buf, uint64(n))
+		bytes = append(bytes, buf...)
+	default:
+		return fmt.Errorf("unknown size in instruction %v", i.Operands[0])
+	}
+
+	c.code = append(c.code, bytes...)
 	return nil
 }
 

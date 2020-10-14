@@ -28,6 +28,7 @@ func init() {
 	InstructionLengths = make(map[string]int)
 
 	InstructionLengths["add"] = 2
+	InstructionLengths["cmp"] = 2
 	InstructionLengths["dec"] = 1
 	InstructionLengths["inc"] = 1
 	InstructionLengths["int"] = 1
