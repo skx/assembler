@@ -23,6 +23,13 @@
         mov rcx, message
         call print_asciiz_string
 
+        ;; print a string with ZERO size calculation
+        ;;
+        ;; BUT change the " " to "*"
+        mov rdx, message
+        call print_asciiz_string_with_stars
+
+
         ;; print a string with an explicit size
         mov rcx, goodbye
         mov rdx, 15
@@ -45,7 +52,7 @@
 
         ret
 
-        ;; Routing to print a '0x00'-terminated string
+        ;; Routine to print a '0x00'-terminated string
         ;;
         ;; Assumes string address is in RCX
 :print_asciiz_string
@@ -62,6 +69,27 @@
                                 ; rdx has the mesage
         call print_string       ; call the print routine
         ret                     ; and return from here
+
+
+
+        ;; Print a string, terminated by NULL, but change " " to "*"
+        ;;
+        ;; NOTE: This destroys the string in the process.
+:print_asciiz_string_with_stars
+        push rdx
+:star_loop
+        cmp byte ptr [rdx], 0x00   ; end of string? we're done
+        je star_loop_over
+        cmp byte ptr [rdx], 0x20   ; is this a space?
+        jne star_loop_cont         ; if not continue
+        mov byte ptr [rdx], 42     ; so replace with "*"
+:star_loop_cont
+        inc rdx                    ; increase our pointer
+        jmp star_loop              ; loop again
+:star_loop_over
+        pop rcx
+        call print_asciiz_string
+        ret
 
 
         ;; Exit

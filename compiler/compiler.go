@@ -532,18 +532,13 @@ func (c *Compiler) assembleCMP(i parser.Instruction) error {
 		binary.LittleEndian.PutUint16(buf, uint16(n))
 		bytes = append(bytes, buf...)
 
-	case 32:
+	case 32, 64:
 		bytes = []byte{0x83, 0x38 + r}
 
 		buf := make([]byte, 4)
 		binary.LittleEndian.PutUint32(buf, uint32(n))
 		bytes = append(bytes, buf...)
-	case 64:
-		bytes = []byte{0x48, 0x83, 0x38 + r}
 
-		buf := make([]byte, 8)
-		binary.LittleEndian.PutUint64(buf, uint64(n))
-		bytes = append(bytes, buf...)
 	default:
 		return fmt.Errorf("unknown size in instruction %v", i.Operands[0])
 	}
@@ -594,22 +589,9 @@ func (c *Compiler) assembleDEC(i parser.Instruction) error {
 	}
 
 	// indirect: double word
-	if i.Operands[0].Size == 32 {
+	if i.Operands[0].Size == 32 || i.Operands[0].Size == 64 {
 		// prefix
 		c.code = append(c.code, []byte{0x67, 0xff}...)
-
-		// register name
-		reg := c.getreg(i.Operands[0].Literal)
-		reg += 0x08
-		c.code = append(c.code, byte(reg))
-
-		return nil
-	}
-
-	// indirect: quad word
-	if i.Operands[0].Size == 64 {
-		// prefix
-		c.code = append(c.code, []byte{0x67, 0x48, 0xff}...)
 
 		// register name
 		reg := c.getreg(i.Operands[0].Literal)
@@ -662,21 +644,9 @@ func (c *Compiler) assembleINC(i parser.Instruction) error {
 	}
 
 	// indirect: double word
-	if i.Operands[0].Size == 32 {
+	if i.Operands[0].Size == 32 || i.Operands[0].Size == 64 {
 		// prefix
 		c.code = append(c.code, []byte{0x67, 0xff}...)
-
-		// register name
-		reg := c.getreg(i.Operands[0].Literal)
-		c.code = append(c.code, byte(reg))
-
-		return nil
-	}
-
-	// indirect: quad word
-	if i.Operands[0].Size == 64 {
-		// prefix
-		c.code = append(c.code, []byte{0x67, 0x48, 0xff}...)
 
 		// register name
 		reg := c.getreg(i.Operands[0].Literal)
@@ -724,7 +694,12 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 	//
 	// Are we moving a register to another register?
 	//
-	if i.Operands[0].Type == token.REGISTER && i.Operands[1].Type == token.REGISTER {
+	// No indirection
+	//
+	if i.Operands[0].Type == token.REGISTER &&
+		i.Operands[0].Indirection == false &&
+		i.Operands[1].Type == token.REGISTER &&
+		i.Operands[1].Indirection == false {
 
 		c.code = append(c.code, []byte{0x48, 0x89}...)
 		out := c.calcRM(i.Operands[0].Literal, i.Operands[1].Literal)
@@ -736,7 +711,9 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 	//
 	// Are we moving a number to a register ?
 	//
-	if i.Operands[0].Type == token.REGISTER && i.Operands[1].Type == token.NUMBER {
+	if i.Operands[0].Type == token.REGISTER &&
+		i.Operands[0].Indirection == false &&
+		i.Operands[1].Type == token.NUMBER {
 
 		// prefix
 		c.code = append(c.code, []byte{0x48, 0xc7}...)
@@ -761,6 +738,7 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 
 	// mov $reg, $id
 	if i.Operands[0].Type == token.REGISTER &&
+		i.Operands[0].Indirection == false &&
 		i.Operands[1].Type == token.IDENTIFIER {
 
 		//
@@ -776,6 +754,65 @@ func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
 			return c.assembleMov(i, true)
 		}
 		return fmt.Errorf("reference to unknown label/data: %v", i.Operands[1])
+	}
+
+	// Storing a value in an address
+	if i.Operands[0].Type == token.REGISTER &&
+		i.Operands[0].Indirection &&
+		i.Operands[1].Type == token.NUMBER {
+
+		// The number we're setting
+		n, err := strconv.ParseInt(i.Operands[1].Literal, 0, 64)
+		if err != nil {
+			return err
+		}
+
+		// Register number
+		r := byte(c.getreg(i.Operands[0].Literal))
+
+		// things we add
+		bytes := []byte{}
+
+		switch i.Operands[0].Size {
+
+		case 8:
+			bytes = []byte{0xc6, r, byte(n)}
+		case 16:
+			bytes = []byte{0x66, 0xc7, byte(r)}
+
+			buf := make([]byte, 2)
+			binary.LittleEndian.PutUint16(buf, uint16(n))
+			bytes = append(bytes, buf...)
+
+		case 32, 64:
+			bytes = []byte{0xc7, r}
+
+			buf := make([]byte, 4)
+			binary.LittleEndian.PutUint32(buf, uint32(n))
+			bytes = append(bytes, buf...)
+
+		default:
+			return fmt.Errorf("unknown size in instruction %v", i.Operands[0])
+		}
+
+		c.code = append(c.code, bytes...)
+
+		return nil
+	}
+
+	//
+	// HACK
+	//
+	// mov rax, [REG]
+	if i.Operands[0].Type == token.REGISTER &&
+		i.Operands[0].Literal == "rax" &&
+		i.Operands[1].Type == token.REGISTER &&
+		i.Operands[1].Indirection {
+
+		// Register number
+		r := byte(c.getreg(i.Operands[0].Literal))
+		c.code = append(c.code, []byte{0x8a, r}...)
+		return nil
 	}
 
 	return fmt.Errorf("unknown MOV instruction: %v", i)
