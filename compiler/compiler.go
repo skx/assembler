@@ -40,6 +40,9 @@ type Compiler struct {
 
 	// offsets which contain jumps to labels
 	labelTargets map[int]string
+
+	// offsets for relative label-jumps
+	jmps map[int]string
 }
 
 // New creates a new instance of the compiler
@@ -54,6 +57,9 @@ func New(src string) *Compiler {
 
 	// fixups we need to make offset-of-code -> label
 	c.labelTargets = make(map[int]string)
+
+	// jump-fixups
+	c.jmps = make(map[int]string)
 
 	return c
 }
@@ -148,6 +154,21 @@ func (c *Compiler) Compile() error {
 		}
 	}
 
+	// Patchup the jumps
+	for o, s := range c.jmps {
+
+		// the offset of the instruction
+		offset := c.labels[s]
+
+		fmt.Printf("Offset of label is %x\n", offset)
+
+		// the offset of the position is a byte
+		diff := uint(o - offset)
+		fmt.Printf("Diff is is %x: %x\n", diff, byte(diff))
+
+		c.code[o] = byte(0xff - byte(diff))
+	}
+
 	//
 	// Write.  The.  Elf.  Output.
 	//
@@ -228,6 +249,13 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		}
 		c.code = append(c.code, 0xcd)
 		c.code = append(c.code, n)
+		return nil
+
+	case "jmp", "jne", "je", "jz", "jnz":
+		err := c.assembleJMP(i)
+		if err != nil {
+			return err
+		}
 		return nil
 
 	case "mov":
@@ -553,6 +581,37 @@ func (c *Compiler) assembleINC(i parser.Instruction) error {
 	}
 
 	return fmt.Errorf("unknown argument for INC %v", i)
+}
+
+// assembleJMP handles all the jump instructions
+//
+// NOTE We have to fixup the offsets here.
+func (c *Compiler) assembleJMP(i parser.Instruction) error {
+
+	var byte byte
+
+	switch i.Instruction {
+	case "jmp":
+		byte = 0xeb
+	case "je", "jz":
+		byte = 0x74
+	case "jne", "jnz":
+		byte = 0x75
+	default:
+		return fmt.Errorf("unknown jmp type")
+	}
+
+	// Ensure we're jumping to a label
+	if i.Operands[0].Type != token.IDENTIFIER {
+		return fmt.Errorf("we only support jumps to labels at the moment")
+	}
+
+	// emit the instruction and make a note of the fixup to make
+	c.code = append(c.code, byte)
+	c.jmps[len(c.code)] = i.Operands[0].Literal
+	c.code = append(c.code, 0x00) // empty displacement
+
+	return nil
 }
 
 func (c *Compiler) assembleMov(i parser.Instruction, label bool) error {
