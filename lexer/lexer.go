@@ -229,7 +229,6 @@ func (l *Lexer) readString(delim rune) (string, error) {
 			}
 		}
 		out = out + string(l.ch)
-
 	}
 
 	return out, nil

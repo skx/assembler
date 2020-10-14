@@ -39,6 +39,9 @@ func init() {
 	InstructionLengths["sub"] = 2
 	InstructionLengths["xor"] = 2
 
+	// call
+	InstructionLengths["call"] = 1
+
 	// jump
 	InstructionLengths["je"] = 1
 	InstructionLengths["jmp"] = 1

@@ -41,8 +41,11 @@ type Compiler struct {
 	// offsets which contain jumps to labels
 	labelTargets map[int]string
 
-	// offsets for relative label-jumps
+	// 8-bit offsets for relative label-jumps
 	jmps map[int]string
+
+	// 32-bit offsets for calls
+	calls map[int]string
 }
 
 // New creates a new instance of the compiler
@@ -60,6 +63,9 @@ func New(src string) *Compiler {
 
 	// jump-fixups
 	c.jmps = make(map[int]string)
+
+	// call-fixups
+	c.calls = make(map[int]string)
 
 	return c
 }
@@ -157,16 +163,32 @@ func (c *Compiler) Compile() error {
 	// Patchup the jumps
 	for o, s := range c.jmps {
 
-		// the offset of the instruction
+		// the offset of the instruction to we should jump to
 		offset := c.labels[s]
-
-		fmt.Printf("Offset of label is %x\n", offset)
 
 		// the offset of the position is a byte
 		diff := uint(o - offset)
-		fmt.Printf("Diff is is %x: %x\n", diff, byte(diff))
 
 		c.code[o] = byte(0xff - byte(diff))
+	}
+
+	// Patchup the calls
+	for o, s := range c.calls {
+
+		// the offset of the instruction to which we should call
+		offset := c.labels[s]
+
+		// the offset of the position is a byte
+		diff := uint32(o - offset + 4)
+		x := uint32(0xffffffff) - uint32(diff-1)
+
+		buf := make([]byte, 4)
+		binary.LittleEndian.PutUint32(buf, x)
+
+		// overwrite the instruction
+		for i, x := range buf {
+			c.code[i+o] = x
+		}
 	}
 
 	//
@@ -212,6 +234,12 @@ func (c *Compiler) compileInstruction(i parser.Instruction) error {
 		}
 		return nil
 
+	case "call":
+		err := c.assembleCALL(i)
+		if err != nil {
+			return err
+		}
+		return nil
 	case "clc":
 		c.code = append(c.code, 0xf8)
 		return nil
@@ -447,7 +475,23 @@ func (c *Compiler) assembleADD(i parser.Instruction) error {
 	return fmt.Errorf("unhandled ADD instruction %v", i)
 }
 
-// accembleDEC handles dec rax, rbx, etc.
+// Handle a call instruction
+func (c *Compiler) assembleCALL(i parser.Instruction) error {
+
+	if i.Operands[0].Type != token.IDENTIFIER {
+		return fmt.Errorf("we only support CALL to labels at the moment")
+	}
+
+	// emit the call
+	c.code = append(c.code, 0xe8)
+
+	c.calls[len(c.code)] = i.Operands[0].Literal
+	c.code = append(c.code, []byte{0x00, 0x00, 0x00, 0x00}...)
+
+	return nil
+}
+
+// assembleDEC handles dec rax, rbx, etc.
 func (c *Compiler) assembleDEC(i parser.Instruction) error {
 
 	// Decrement the contents of a register
